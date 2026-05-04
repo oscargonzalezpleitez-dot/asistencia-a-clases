@@ -375,6 +375,61 @@ body::before{
 .setup-notice p{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:8px}
 .setup-notice code{background:rgba(0,0,0,.4);padding:3px 7px;border-radius:5px;font-family:var(--mono);font-size:11px;color:var(--accent);display:inline-block;word-break:break-all}
 
+/* ─── ARCHIVE ─── */
+.archive-card{
+  display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;
+  padding:14px;border-radius:11px;border:1px solid var(--border);
+  margin-bottom:8px;background:var(--surface);transition:all .2s;
+}
+.archive-card:hover{border-color:var(--border-hi);background:var(--card-hi)}
+.archive-info{min-width:0}
+.archive-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
+.archive-meta{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.5}
+.archive-pill{
+  font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:5px 10px;border-radius:6px;
+  background:rgba(110,231,255,.08);color:var(--accent);border:1px solid rgba(110,231,255,.22);white-space:nowrap;
+}
+.archive-actions{display:flex;gap:6px}
+@media(max-width:540px){
+  .archive-card{grid-template-columns:1fr auto;gap:8px}
+  .archive-actions{grid-column:1/-1;justify-content:flex-end}
+}
+
+/* ─── PDF OPTIONS ─── */
+.pdf-option{
+  display:flex;align-items:flex-start;gap:12px;padding:14px;
+  background:var(--bg-2);border:1px solid var(--border);border-radius:10px;
+  margin-bottom:10px;cursor:pointer;transition:all .2s;
+}
+.pdf-option:hover{border-color:var(--border-hi);background:var(--card-hi)}
+.pdf-option input[type="radio"]{
+  margin-top:3px;flex-shrink:0;width:18px;height:18px;accent-color:var(--accent);cursor:pointer;
+}
+.pdf-option label{flex:1;cursor:pointer;color:var(--text-dim)}
+.pdf-option label strong{display:block;font-size:14px;color:var(--text);margin-bottom:3px;font-weight:600}
+.pdf-option label span{font-size:12px;color:var(--muted);line-height:1.5}
+.pdf-option input[type="radio"]:checked ~ label strong{color:var(--accent)}
+.pdf-option:has(input:checked){border-color:var(--accent);background:rgba(110,231,255,.05)}
+.pdf-option input:disabled ~ label{opacity:.4;cursor:not-allowed}
+
+/* ─── LOADING OVERLAY ─── */
+.loading-overlay{
+  position:fixed;inset:0;background:rgba(5,7,13,.85);backdrop-filter:blur(6px);
+  z-index:400;display:none;align-items:center;justify-content:center;
+}
+.loading-overlay.show{display:flex}
+.loading-box{
+  background:var(--card);border:1px solid var(--border-hi);border-radius:14px;
+  padding:32px 40px;display:flex;flex-direction:column;align-items:center;gap:18px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.loading-spinner{
+  width:42px;height:42px;border:3px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:var(--mono);font-size:12px;letter-spacing:2px;color:var(--text);text-transform:uppercase}
+
 /* ─── TOAST ─── */
 .toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
@@ -412,6 +467,7 @@ body::before{
   <div class="nav-tabs">
     <button class="tab-btn active" id="tabP" onclick="switchView('prof', this)">Profesor</button>
     <button class="tab-btn" id="tabM" onclick="switchView('monitor', this)">Monitor</button>
+    <button class="tab-btn" id="tabA" onclick="switchView('archive', this)">Archivo</button>
     <button class="tab-btn" id="tabS" onclick="switchView('student', this)">Alumno</button>
   </div>
   <span class="pill off" id="sessionPill"><span class="dot"></span>SIN SESIÓN</span>
@@ -587,6 +643,37 @@ body::before{
   </div>
 </section>
 
+<!-- ════════════ VISTA ARCHIVO (sesiones pasadas) ════════════ -->
+<section id="view-archive" class="view">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Sesiones archivadas</span>
+      <button class="export-btn" onclick="loadArchive()">↻ Recargar</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-dim);line-height:1.6">
+      Aquí ves todas las sesiones que detuviste. Puedes ver detalles, exportar o eliminar para liberar espacio en Firebase.
+    </p>
+    <div id="archiveList" style="margin-top:18px">
+      <div class="log-empty"><div class="ico">📚</div>CARGA EL ARCHIVO PARA VER SESIONES</div>
+    </div>
+  </div>
+
+  <!-- Detalle de sesión seleccionada -->
+  <div class="card" id="archiveDetailCard" style="display:none">
+    <div class="card-head">
+      <span class="card-title" id="archiveDetailTitle">Detalle</span>
+      <button class="export-btn" onclick="closeArchiveDetail()">✕ Cerrar</button>
+    </div>
+    <div class="stats-grid" id="archiveStats"></div>
+    <div class="log-toolbar" style="margin-top:14px">
+      <button class="export-btn pdf" onclick="exportArchivePDF()">📄 PDF</button>
+      <button class="export-btn xlsx" onclick="exportArchiveExcel()">📊 EXCEL</button>
+      <button class="export-btn" onclick="exportArchiveCSV()">📑 CSV</button>
+    </div>
+    <div class="log-scroll" id="archiveDetailBody" style="margin-top:14px"></div>
+  </div>
+</section>
+
 <!-- ════════════ VISTA ALUMNO ════════════ -->
 <section id="view-student" class="view">
   <div class="student-wrap">
@@ -700,6 +787,34 @@ body::before{
     <p style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6">
       💡 Una vez configurado, el sistema funciona también sin internet en modo local. Si Firebase falla, todo se guarda en este dispositivo.
     </p>
+  </div>
+</div>
+
+<!-- Modal opciones de PDF -->
+<div class="modal-bg" id="pdfOptionsModal">
+  <div class="modal" style="max-width:440px">
+    <h3>📄 Exportar PDF</h3>
+    <p class="sub">¿Qué tipo de PDF necesitas?</p>
+
+    <div class="pdf-option">
+      <input type="radio" id="pdfFormalRadio" name="pdfType" checked>
+      <label for="pdfFormalRadio">
+        <strong>📋 PDF formal (sin fotos)</strong>
+        <span>Listado limpio para entregar a coordinación. Más liviano, más rápido.</span>
+      </label>
+    </div>
+    <div class="pdf-option">
+      <input type="radio" id="pdfWithPhotos" name="pdfType">
+      <label for="pdfWithPhotos">
+        <strong>📸 PDF con fotos (auditoría)</strong>
+        <span>Incluye thumbnail de cada alumno. Útil para verificación visual.</span>
+      </label>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="closePdfOptionsModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="generatePDF()">📥 Generar PDF</button>
+    </div>
   </div>
 </div>
 
@@ -1111,6 +1226,7 @@ function switchView(v, btn) {
   if (v === 'student') initStudent();
   else stopCamera();
   if (v === 'monitor') refreshMonitor();
+  if (v === 'archive') loadArchive();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1475,56 +1591,66 @@ function escapeHtml(s) {
 // 6. EXPORTACIONES (PDF, EXCEL, CSV)
 // ═══════════════════════════════════════════════════════════════
 
+// Modal de opciones para PDF
 function exportPDF() {
   if (!STATE.log.length) { toast('No hay registros', 'info'); return; }
   if (!window.jspdf) { toast('Cargando librería PDF...', 'info'); return; }
+  showPdfOptionsModal();
+}
 
+function showPdfOptionsModal() {
+  const hasPhotos = STATE.log.some(e => e.photo);
+  const modal = document.getElementById('pdfOptionsModal');
+  modal.classList.add('show');
+  // Deshabilitar opción de fotos si no hay ninguna
+  document.getElementById('pdfWithPhotos').disabled = !hasPhotos;
+  if (!hasPhotos) {
+    document.getElementById('pdfFormalRadio').checked = true;
+  }
+}
+
+function closePdfOptionsModal() {
+  document.getElementById('pdfOptionsModal').classList.remove('show');
+}
+
+async function generatePDF() {
+  const withPhotos = document.getElementById('pdfWithPhotos').checked;
+  closePdfOptionsModal();
+
+  // Mostrar overlay de progreso
+  showLoadingOverlay('Generando PDF...');
+
+  // Pequeño delay para que se renderice el overlay
+  await new Promise(r => setTimeout(r, 50));
+
+  try {
+    if (withPhotos) {
+      await generatePDFWithPhotos();
+    } else {
+      generatePDFFormal();
+    }
+    toast('PDF exportado', 'success');
+  } catch(e) {
+    console.error('Error generando PDF:', e);
+    toast('Error al generar PDF: ' + e.message, 'error');
+  } finally {
+    hideLoadingOverlay();
+  }
+}
+
+// PDF formal: solo datos, sin fotos. Para entregar a coordinación.
+function generatePDFFormal() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
   const W = doc.internal.pageSize.getWidth();
   const meta = STATE.sessionMeta;
 
-  // Encabezado USAM
-  doc.setFillColor(11, 17, 32);
-  doc.rect(0, 0, W, 28, 'F');
-  doc.setTextColor(110, 231, 255);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(14);
-  doc.text('UNIVERSIDAD SALVADOREÑA ALBERTO MASFERRER', W/2, 11, { align:'center' });
-  doc.setFontSize(9);
-  doc.setTextColor(167, 139, 250);
-  doc.text('CONTROL DE ASISTENCIA · USAM', W/2, 18, { align:'center' });
-  doc.setTextColor(160, 160, 160);
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(8);
-  doc.text(`Generado: ${new Date().toLocaleString('es-SV')}`, W/2, 24, { align:'center' });
+  drawPDFHeader(doc, W);
+  let y = drawPDFMeta(doc, meta);
 
-  // Datos sesión
-  let y = 38;
-  doc.setTextColor(40,40,40);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(11);
-  doc.text(meta.subject || 'Sesión', 15, y); y += 6;
-
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(9);
-  doc.setTextColor(80,80,80);
-  if (meta.topic) { doc.text(`Tema: ${meta.topic}`, 15, y); y += 5; }
-  if (meta.group) { doc.text(`Grupo: ${meta.group}`, 15, y); y += 5; }
-  doc.text(`Fecha: ${formatDate(meta.date)}`, 15, y); y += 5;
-  doc.text(`Total presentes: ${STATE.log.length}`, 15, y); y += 5;
-  const onTime = STATE.log.filter(e => !e.late).length;
-  const late = STATE.log.filter(e => e.late).length;
-  doc.text(`A tiempo: ${onTime}  ·  Tardíos: ${late}`, 15, y); y += 8;
-
-  // Tabla
   const sorted = [...STATE.log].sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
   const rows = sorted.map((e, i) => [
-    i+1,
-    e.name,
-    e.carnet,
-    e.email,
-    e.time,
+    i+1, e.name, e.carnet, e.email, e.time,
     e.late ? 'TARDÍO' : 'A TIEMPO'
   ]);
 
@@ -1553,7 +1679,121 @@ function exportPDF() {
     margin: { left:15, right:15 }
   });
 
-  // Pie de página con firma
+  drawPDFFooter(doc, W);
+
+  const fname = `asistencia_formal_${(meta.subject||'sesion').replace(/\s+/g,'_').toLowerCase()}_${meta.date||'fecha'}.pdf`;
+  doc.save(fname);
+}
+
+// PDF con fotos: para auditoría visual
+async function generatePDFWithPhotos() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+  const W = doc.internal.pageSize.getWidth();
+  const meta = STATE.sessionMeta;
+
+  drawPDFHeader(doc, W);
+  let y = drawPDFMeta(doc, meta);
+
+  const sorted = [...STATE.log].sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+
+  // Tabla con thumbnails. Usamos didDrawCell para insertar las imágenes.
+  const rows = sorted.map((e, i) => [
+    i+1,
+    '', // espacio reservado para foto
+    e.name,
+    e.carnet,
+    e.email,
+    e.time,
+    e.late ? 'TARDÍO' : 'A TIEMPO'
+  ]);
+
+  doc.autoTable({
+    startY: y,
+    head: [['#', 'Foto', 'Nombre', 'Carnet', 'Correo', 'Hora', 'Estado']],
+    body: rows,
+    theme: 'striped',
+    headStyles: { fillColor:[15,20,40], textColor:[110,231,255], fontStyle:'bold', fontSize:8 },
+    bodyStyles: { fontSize:7, textColor:[40,40,40], minCellHeight:14, valign:'middle' },
+    alternateRowStyles: { fillColor:[245,247,252] },
+    columnStyles: {
+      0: { cellWidth:8, halign:'center' },
+      1: { cellWidth:14, halign:'center' },
+      2: { cellWidth:42 },
+      3: { cellWidth:22 },
+      4: { cellWidth:50 },
+      5: { cellWidth:14, halign:'center' },
+      6: { cellWidth:18, halign:'center', fontStyle:'bold', fontSize:7 }
+    },
+    didParseCell: data => {
+      if (data.column.index === 6 && data.cell.section === 'body') {
+        if (data.cell.raw === 'TARDÍO') data.cell.styles.textColor = [202, 138, 4];
+        else data.cell.styles.textColor = [22, 163, 74];
+      }
+    },
+    didDrawCell: data => {
+      // Insertar foto en columna 1 (Foto)
+      if (data.column.index === 1 && data.cell.section === 'body') {
+        const entry = sorted[data.row.index];
+        if (entry && entry.photo) {
+          try {
+            const photoSize = 12; // mm
+            const x = data.cell.x + (data.cell.width - photoSize) / 2;
+            const yImg = data.cell.y + (data.cell.height - photoSize) / 2;
+            doc.addImage(entry.photo, 'JPEG', x, yImg, photoSize, photoSize);
+          } catch(err) {
+            console.warn('No se pudo insertar foto del registro', data.row.index);
+          }
+        }
+      }
+    },
+    margin: { left:10, right:10 }
+  });
+
+  drawPDFFooter(doc, W);
+
+  const fname = `asistencia_con_fotos_${(meta.subject||'sesion').replace(/\s+/g,'_').toLowerCase()}_${meta.date||'fecha'}.pdf`;
+  doc.save(fname);
+}
+
+// Helpers compartidos para PDF
+function drawPDFHeader(doc, W) {
+  doc.setFillColor(11, 17, 32);
+  doc.rect(0, 0, W, 28, 'F');
+  doc.setTextColor(110, 231, 255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(14);
+  doc.text('UNIVERSIDAD SALVADOREÑA ALBERTO MASFERRER', W/2, 11, { align:'center' });
+  doc.setFontSize(9);
+  doc.setTextColor(167, 139, 250);
+  doc.text('CONTROL DE ASISTENCIA · USAM', W/2, 18, { align:'center' });
+  doc.setTextColor(160, 160, 160);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(8);
+  doc.text(`Generado: ${new Date().toLocaleString('es-SV')}`, W/2, 24, { align:'center' });
+}
+
+function drawPDFMeta(doc, meta) {
+  let y = 38;
+  doc.setTextColor(40,40,40);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(11);
+  doc.text(meta.subject || 'Sesión', 15, y); y += 6;
+
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9);
+  doc.setTextColor(80,80,80);
+  if (meta.topic) { doc.text(`Tema: ${meta.topic}`, 15, y); y += 5; }
+  if (meta.group) { doc.text(`Grupo: ${meta.group}`, 15, y); y += 5; }
+  doc.text(`Fecha: ${formatDate(meta.date)}`, 15, y); y += 5;
+  doc.text(`Total presentes: ${STATE.log.length}`, 15, y); y += 5;
+  const onTime = STATE.log.filter(e => !e.late).length;
+  const late = STATE.log.filter(e => e.late).length;
+  doc.text(`A tiempo: ${onTime}  ·  Tardíos: ${late}`, 15, y); y += 8;
+  return y;
+}
+
+function drawPDFFooter(doc, W) {
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -1561,7 +1801,6 @@ function exportPDF() {
     doc.setDrawColor(180,180,180);
     doc.setLineWidth(0.2);
     if (i === pageCount) {
-      // Firma solo en última página
       doc.line(W - 80, H - 28, W - 15, H - 28);
       doc.setFontSize(8); doc.setTextColor(100,100,100);
       doc.text('Firma del docente', W - 47.5, H - 23, { align:'center' });
@@ -1570,10 +1809,31 @@ function exportPDF() {
     doc.text(`Página ${i} de ${pageCount}`, W/2, H - 8, { align:'center' });
     doc.text('USAM — Documento generado electrónicamente', 15, H - 8);
   }
+}
 
-  const fname = `asistencia_${(meta.subject||'sesion').replace(/\s+/g,'_').toLowerCase()}_${meta.date||'fecha'}.pdf`;
-  doc.save(fname);
-  toast('PDF exportado', 'success');
+// Overlay de carga
+function showLoadingOverlay(text) {
+  let ov = document.getElementById('loadingOverlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'loadingOverlay';
+    ov.className = 'loading-overlay';
+    ov.innerHTML = `
+      <div class="loading-box">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">${text}</div>
+      </div>
+    `;
+    document.body.appendChild(ov);
+  } else {
+    document.getElementById('loadingText').textContent = text;
+  }
+  ov.classList.add('show');
+}
+
+function hideLoadingOverlay() {
+  const ov = document.getElementById('loadingOverlay');
+  if (ov) ov.classList.remove('show');
 }
 
 function exportExcel() {
@@ -1860,10 +2120,26 @@ function handleShutter() {
 function takePhoto() {
   const vid = document.getElementById('videoEl');
   const canvas = document.getElementById('snapCanvas');
-  canvas.width = vid.videoWidth || 640;
-  canvas.height = vid.videoHeight || 480;
-  canvas.getContext('2d').drawImage(vid, 0, 0);
-  const url = canvas.toDataURL('image/jpeg', 0.7);
+
+  // Comprimir agresivamente: máximo 480x360 px, calidad JPEG 0.55
+  // Esto reduce ~35 KB → ~12 KB sin perder identificación facial
+  const TARGET_W = 480;
+  const TARGET_H = 360;
+  const srcW = vid.videoWidth || 640;
+  const srcH = vid.videoHeight || 480;
+
+  // Calcular escala manteniendo aspect ratio
+  const scale = Math.min(TARGET_W / srcW, TARGET_H / srcH, 1);
+  canvas.width = Math.round(srcW * scale);
+  canvas.height = Math.round(srcH * scale);
+
+  const ctx = canvas.getContext('2d');
+  // Mejora calidad de redimensionado
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+
+  const url = canvas.toDataURL('image/jpeg', 0.55);
   const prev = document.getElementById('snapPreview');
   prev.src = url;
   prev.style.display = 'block';
@@ -1874,6 +2150,10 @@ function takePhoto() {
   document.getElementById('camMsg').style.display = 'none';
   document.getElementById('retakeBtn').style.display = 'block';
   document.getElementById('shutterBtn').textContent = '✅ Confirmar y registrar';
+
+  // Log informativo (solo en consola, no molesta al usuario)
+  const sizeKB = Math.round(url.length * 0.75 / 1024);
+  console.log(`📸 Foto comprimida: ${canvas.width}×${canvas.height}, ~${sizeKB} KB`);
 }
 
 function retake() {
@@ -2028,6 +2308,166 @@ function renderMonitor(list) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// 8B. VISTA ARCHIVO (sesiones pasadas)
+// ═══════════════════════════════════════════════════════════════
+
+let CURRENT_ARCHIVE_SESSION = null; // sesión actualmente abierta
+
+async function loadArchive() {
+  const list = document.getElementById('archiveList');
+  if (!STATE.online || !STATE.fbDb) {
+    list.innerHTML = '<div class="log-empty"><div class="ico">📡</div>SIN CONEXIÓN A FIREBASE</div>';
+    return;
+  }
+  list.innerHTML = '<div class="log-empty"><div class="ico">⏳</div>CARGANDO...</div>';
+
+  const { ref, get } = window.firebaseLib;
+  try {
+    const snap = await get(ref(STATE.fbDb, 'archive'));
+    const data = snap.val() || {};
+    const sessions = Object.entries(data).map(([id, s]) => ({ id, ...s }));
+    // Ordenar por fecha descendente
+    sessions.sort((a,b) => (b.startTime||0) - (a.startTime||0));
+
+    if (!sessions.length) {
+      list.innerHTML = '<div class="log-empty"><div class="ico">📭</div>NO HAY SESIONES ARCHIVADAS</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    sessions.forEach(s => {
+      const meta = s.meta || {};
+      const attCount = s.attendees ? Object.keys(s.attendees).length : 0;
+      const dateStr = s.startTime ? new Date(s.startTime).toLocaleString('es-SV', {dateStyle:'medium', timeStyle:'short'}) : '—';
+      const card = document.createElement('div');
+      card.className = 'archive-card';
+      card.innerHTML = `
+        <div class="archive-info">
+          <div class="archive-title">${escapeHtml(meta.subject || 'Sin nombre')}</div>
+          <div class="archive-meta">
+            ${meta.topic ? escapeHtml(meta.topic) + ' · ' : ''}
+            ${meta.group ? escapeHtml(meta.group) + ' · ' : ''}
+            ${dateStr}
+          </div>
+        </div>
+        <div class="archive-stats">
+          <span class="archive-pill">${attCount} alumno${attCount!==1?'s':''}</span>
+        </div>
+        <div class="archive-actions">
+          <button class="export-btn" data-action="open">Ver</button>
+          <button class="export-btn" data-action="delete" style="border-color:rgba(251,113,133,.3);color:var(--red)">🗑</button>
+        </div>
+      `;
+      card.querySelector('[data-action="open"]').addEventListener('click', () => openArchiveSession(s));
+      card.querySelector('[data-action="delete"]').addEventListener('click', () => deleteArchiveSession(s.id, meta.subject));
+      list.appendChild(card);
+    });
+  } catch(e) {
+    console.error('Error cargando archivo:', e);
+    list.innerHTML = '<div class="log-empty"><div class="ico">⚠️</div>ERROR AL CARGAR</div>';
+  }
+}
+
+function openArchiveSession(session) {
+  CURRENT_ARCHIVE_SESSION = session;
+  const card = document.getElementById('archiveDetailCard');
+  card.style.display = 'block';
+  card.scrollIntoView({behavior:'smooth', block:'start'});
+
+  document.getElementById('archiveDetailTitle').textContent = (session.meta?.subject || 'Sesión') + ' — Detalle';
+
+  const attendees = session.attendees ? Object.values(session.attendees) : [];
+  const total = attendees.length;
+  const onTime = attendees.filter(e => !e.late).length;
+  const late = attendees.filter(e => e.late).length;
+  const dateStr = session.startTime ? new Date(session.startTime).toLocaleDateString('es-SV') : '—';
+
+  document.getElementById('archiveStats').innerHTML = `
+    <div class="stat"><div class="stat-lbl">Total</div><div class="stat-val acc">${total}</div></div>
+    <div class="stat"><div class="stat-lbl">A tiempo</div><div class="stat-val green">${onTime}</div></div>
+    <div class="stat"><div class="stat-lbl">Tardíos</div><div class="stat-val warn">${late}</div></div>
+    <div class="stat"><div class="stat-lbl">Fecha</div><div class="stat-val" style="font-size:14px">${dateStr}</div></div>
+  `;
+
+  const body = document.getElementById('archiveDetailBody');
+  if (!attendees.length) {
+    body.innerHTML = '<div class="log-empty"><div class="ico">📭</div>SIN REGISTROS EN ESTA SESIÓN</div>';
+    return;
+  }
+  attendees.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+  body.innerHTML = '';
+  attendees.forEach((e, i) => {
+    const photoHtml = e.photo
+      ? `<img class="log-thumb" src="${e.photo}" alt="">`
+      : `<div class="log-thumb placeholder">👤</div>`;
+    const flagsHtml = e.late ? '<span class="flag-chip late">TARDÍO</span>' : '<span class="flag-chip ok">A TIEMPO</span>';
+    const row = document.createElement('div');
+    row.className = 'log-entry';
+    row.innerHTML = `
+      <span class="log-idx">#${i+1}</span>
+      ${photoHtml}
+      <div>
+        <div class="log-name">${escapeHtml(e.name)}</div>
+        <div class="log-sub">${escapeHtml(e.carnet)} · ${escapeHtml(e.email)} · ${e.time}</div>
+        <div class="log-flags">${flagsHtml}</div>
+      </div>
+      <span class="token-chip">${e.token}</span>
+      <span></span>
+    `;
+    if (e.photo) row.querySelector('.log-thumb').addEventListener('click', () => openLb(e.photo));
+    body.appendChild(row);
+  });
+}
+
+function closeArchiveDetail() {
+  document.getElementById('archiveDetailCard').style.display = 'none';
+  CURRENT_ARCHIVE_SESSION = null;
+}
+
+async function deleteArchiveSession(id, subject) {
+  if (!confirm(`¿Eliminar permanentemente la sesión "${subject || id}" y todos sus registros?\n\nEsta acción no se puede deshacer.`)) return;
+  const { ref, remove } = window.firebaseLib;
+  try {
+    await remove(ref(STATE.fbDb, 'archive/' + id));
+    toast('Sesión eliminada', 'success');
+    if (CURRENT_ARCHIVE_SESSION && CURRENT_ARCHIVE_SESSION.id === id) closeArchiveDetail();
+    loadArchive();
+  } catch(e) {
+    toast('Error al eliminar: ' + e.message, 'error');
+  }
+}
+
+// Exportar la sesión archivada actualmente abierta
+async function exportArchivePDF() {
+  if (!CURRENT_ARCHIVE_SESSION) return;
+  // Truco: temporalmente sustituir STATE.log y meta por los del archivo
+  const backup = { log: STATE.log, meta: STATE.sessionMeta };
+  STATE.log = Object.values(CURRENT_ARCHIVE_SESSION.attendees || {});
+  STATE.sessionMeta = CURRENT_ARCHIVE_SESSION.meta || {};
+  exportPDF();
+  // Restaurar después de un momento (el modal está abierto, no hay race condition con la sesión activa)
+  setTimeout(() => { STATE.log = backup.log; STATE.sessionMeta = backup.meta; }, 100);
+}
+
+function exportArchiveExcel() {
+  if (!CURRENT_ARCHIVE_SESSION) return;
+  const backup = { log: STATE.log, meta: STATE.sessionMeta };
+  STATE.log = Object.values(CURRENT_ARCHIVE_SESSION.attendees || {});
+  STATE.sessionMeta = CURRENT_ARCHIVE_SESSION.meta || {};
+  exportExcel();
+  STATE.log = backup.log; STATE.sessionMeta = backup.meta;
+}
+
+function exportArchiveCSV() {
+  if (!CURRENT_ARCHIVE_SESSION) return;
+  const backup = { log: STATE.log, meta: STATE.sessionMeta };
+  STATE.log = Object.values(CURRENT_ARCHIVE_SESSION.attendees || {});
+  STATE.sessionMeta = CURRENT_ARCHIVE_SESSION.meta || {};
+  exportCSV();
+  STATE.log = backup.log; STATE.sessionMeta = backup.meta;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // 9. UTILIDADES
 // ═══════════════════════════════════════════════════════════════
 
@@ -2048,7 +2488,11 @@ Object.assign(window, {
   switchView, openConfigModal, closeConfigModal, testFirebase, saveFirebaseConfig,
   startSession, rotateQR, stopSession, validateStep1, goStep, handleShutter, retake,
   exportPDF, exportExcel, exportCSV, clearAttendance, openLb, closeLb,
-  renderLog, refreshMonitor
+  renderLog, refreshMonitor,
+  // Archivo y PDF nuevo
+  loadArchive, openArchiveSession, closeArchiveDetail, deleteArchiveSession,
+  exportArchivePDF, exportArchiveExcel, exportArchiveCSV,
+  closePdfOptionsModal, generatePDF
 });
 
 </script>
