@@ -713,6 +713,20 @@ body::before{
    Características: Firebase tiempo real, anti-trampa, exportación
    ═══════════════════════════════════════════════════════════════ */
 
+// ─── Configuración Firebase embebida ───
+// NOTA: Esta config es pública (apiKey de Firebase web es seguro exponerla,
+// la seguridad se aplica via reglas de la base de datos en Firebase Console).
+// Esto permite que CUALQUIERA que abra la URL pueda registrarse sin configurar nada.
+const FIREBASE_CONFIG_DEFAULT = {
+  apiKey: "AIzaSyA7ephKAbX3wn5HFk45RTrWWCVViLvz5oI",
+  authDomain: "asistencia-a-clases-86403.firebaseapp.com",
+  databaseURL: "https://asistencia-a-clases-86403-default-rtdb.firebaseio.com",
+  projectId: "asistencia-a-clases-86403",
+  storageBucket: "asistencia-a-clases-86403.firebasestorage.app",
+  messagingSenderId: "229152224259",
+  appId: "1:229152224259:web:795da41d059473f8648a36"
+};
+
 // ─── Estado global ───
 const STATE = {
   sessionActive: false,
@@ -810,6 +824,11 @@ function loadConfig() {
     try {
       STATE.firebaseConfig = JSON.parse(saved);
     } catch(e) { console.warn('Config inválida'); }
+  }
+  // Si no hay config guardada, usar la embebida por defecto
+  // Esto permite que los alumnos se conecten automáticamente sin configurar nada
+  if (!STATE.firebaseConfig) {
+    STATE.firebaseConfig = FIREBASE_CONFIG_DEFAULT;
   }
   STATE.teacherPassword = localStorage.getItem('usam_teacher_pw') || null;
 }
