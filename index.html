@@ -1837,6 +1837,9 @@ function listenAttendees() {
     STATE.log = arr;
     renderLog();
     updateStats();
+    if (document.querySelector('.view.active')?.id === 'view-aula') {
+      renderAula(arr, { currentToken: STATE.currentToken, meta: STATE.sessionMeta, startTime: STATE.sessionStartTime });
+    }
   });
 }
 
