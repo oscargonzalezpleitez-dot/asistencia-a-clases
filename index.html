@@ -118,15 +118,15 @@ body::before{
 .aula-phone-heading{position:relative;z-index:3;padding:6px 22px 12px}
 .aula-h1{font-size:18px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
 .aula-h1-sub{font-size:11px;opacity:.65;margin-top:4px;font-weight:500}
-.aula-scan-window{position:relative;z-index:3;margin:0 14px;aspect-ratio:1/1;border-radius:22px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.5)}
-.aula-scan-bg{position:absolute;inset:0;background:linear-gradient(135deg,#3A2D5C,#1F1838);display:grid;place-items:center}
-.aula-projected{position:absolute;inset:8% 8% 10% 8%;background:linear-gradient(180deg,#fff,#F6EFFF);border-radius:10px;box-shadow:0 16px 32px rgba(0,0,0,.4);transform:perspective(500px) rotateX(6deg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;gap:5px}
-.aula-proj-lbl{font-size:7px;font-weight:700;color:var(--aula-secondary);letter-spacing:1.2px}
-.aula-proj-qr{width:78%;aspect-ratio:1/1;background:#fff;border-radius:4px;display:grid;place-items:center;padding:3px}
+.aula-scan-window{position:relative;z-index:3;margin:0 14px;aspect-ratio:1/1;border-radius:18px;overflow:hidden;background:#fff}
+.aula-scan-bg{position:absolute;inset:0;background:#fff;display:grid;place-items:center}
+.aula-projected{position:absolute;inset:0;background:#fff;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;gap:8px}
+.aula-proj-lbl{font-size:9px;font-weight:700;color:var(--aula-secondary);letter-spacing:1.4px}
+.aula-proj-qr{width:88%;aspect-ratio:1/1;background:#fff;border-radius:4px;display:grid;place-items:center;padding:0}
 .aula-proj-qr canvas, .aula-proj-qr img{width:100%!important;height:100%!important;display:block;image-rendering:pixelated}
-.aula-proj-code{font-size:8px;font-weight:800;color:#1A1430;font-family:var(--mono);letter-spacing:1.6px}
-.aula-scan-mask{position:absolute;inset:0;background:rgba(0,0,0,.55);-webkit-mask-image:radial-gradient(circle at 50% 50%, transparent 38%, #000 39%);mask-image:radial-gradient(circle at 50% 50%, transparent 38%, #000 39%)}
-.aula-scan-frame{position:absolute;left:12%;right:12%;top:12%;bottom:12%}
+.aula-proj-code{font-size:11px;font-weight:800;color:#1A1430;font-family:var(--mono);letter-spacing:2px}
+.aula-scan-mask{display:none}
+.aula-scan-frame{display:none}
 .aula-bracket{position:absolute;width:24px;height:24px}
 .aula-tl{top:0;left:0;border-top:3px solid #fff;border-left:3px solid #fff;border-top-left-radius:12px}
 .aula-tr{top:0;right:0;border-top:3px solid #fff;border-right:3px solid #fff;border-top-right-radius:12px}
@@ -1440,6 +1440,11 @@ function listenActiveSession() {
       const view = document.querySelector('.view.active')?.id;
       if (view === 'view-monitor' || view === 'view-student' || view === 'view-aula') {
         syncFromFirebase(data);
+      } else {
+        // Aun si no estamos en esas vistas, mantener STATE.log fresco para aula
+        if (data.attendees) {
+          STATE.log = Object.values(data.attendees).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+        }
       }
     } else {
       // No hay sesión activa
@@ -1470,15 +1475,21 @@ function syncFromFirebase(sessionData) {
     }
   }
 
-  // Sincronizar log para vista monitor
+  // Sincronizar log para vista monitor / aula
   if (sessionData && sessionData.attendees) {
     const list = Object.values(sessionData.attendees).sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+    STATE.log = list;
     if (view === 'view-monitor') {
       renderMonitor(list);
     }
     if (view === 'view-aula') {
       renderAula(list, sessionData);
     }
+  } else if (sessionData) {
+    STATE.log = [];
+    if (view === 'view-aula') renderAula([], sessionData);
+  } else {
+    if (view === 'view-aula') renderAula([], null);
   }
 }
 
