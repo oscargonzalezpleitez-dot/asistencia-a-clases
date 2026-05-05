@@ -607,6 +607,7 @@ body::before{
       <button class="export-btn pdf" onclick="exportPDF()">📄 PDF</button>
       <button class="export-btn xlsx" onclick="exportExcel()">📊 EXCEL</button>
       <button class="export-btn" onclick="exportCSV()">📑 CSV</button>
+      <button class="export-btn" onclick="dedupAttendance()" style="color:var(--warn);border-color:rgba(251,191,36,.3)">🧹 Deduplicar</button>
       <button class="export-btn" onclick="clearAttendance()" style="color:var(--red);border-color:rgba(251,113,133,.3)">🗑 Limpiar</button>
     </div>
     <div class="log-scroll" id="logBody">
@@ -1582,6 +1583,55 @@ async function clearAttendance() {
   }
 }
 
+// Eliminar duplicados manteniendo el primer registro (más temprano) de cada carnet
+async function dedupAttendance() {
+  if (!STATE.log.length) { toast('No hay registros', 'info'); return; }
+
+  // Agrupar por carnet, ordenando por timestamp ascendente
+  const sortedAsc = [...STATE.log].sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+  const seen = new Set();
+  const keep = [];
+  const remove = [];
+  sortedAsc.forEach(e => {
+    const key = (e.carnet || '').trim() + '|' + (e.email || '').toLowerCase().trim();
+    if (seen.has(key) || seen.has(e.carnet)) {
+      remove.push(e);
+    } else {
+      seen.add(key);
+      seen.add(e.carnet);
+      keep.push(e);
+    }
+  });
+
+  if (!remove.length) {
+    toast('No hay duplicados ✓', 'success');
+    return;
+  }
+
+  if (!confirm(`Se encontraron ${remove.length} registros duplicados. Se mantendrá el más temprano de cada alumno.\n\n¿Continuar?`)) return;
+
+  if (STATE.online && STATE.fbDb && STATE.sessionId) {
+    const { ref, remove: fbRemove } = window.firebaseLib;
+    try {
+      let deleted = 0;
+      for (const e of remove) {
+        if (e._fbKey) {
+          await fbRemove(ref(STATE.fbDb, 'active_session/attendees/' + e._fbKey));
+          deleted++;
+        }
+      }
+      toast(`✓ ${deleted} duplicados eliminados (${keep.length} alumnos únicos)`, 'success');
+    } catch(e) {
+      console.error(e);
+      toast('Error al deduplicar: ' + e.message, 'error');
+    }
+  } else {
+    STATE.log = keep.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+    renderLog();
+    toast(`✓ ${remove.length} duplicados eliminados`, 'success');
+  }
+}
+
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c =>
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1962,7 +2012,7 @@ function goStep(n) {
 async function validateStep1() {
   const name = document.getElementById('s-name').value.trim();
   const carnet = document.getElementById('s-carnet').value.trim();
-  const email = document.getElementById('s-email').value.trim();
+  const email = document.getElementById('s-email').value.trim().toLowerCase();
   const token = document.getElementById('s-token').value.trim().toUpperCase().replace(/\s/g,'');
   const errEl = document.getElementById('errToken');
 
@@ -1981,13 +2031,25 @@ async function validateStep1() {
   document.getElementById('s-email').classList.remove('err');
 
   // Validar dominio @usam.edu.sv si está activado en la sesión
-  // Lo verificamos ANTES de Firebase para mensaje rápido
   const requireUsam = (STATE.sessionMeta?.config?.requireUsamEmail !== false) &&
                       (STATE.config.requireUsamEmail !== false);
   if (requireUsam && !/@usam\.edu\.sv$/i.test(email)) {
     toast('Solo se aceptan correos institucionales @usam.edu.sv', 'error');
     document.getElementById('s-email').classList.add('err');
     return;
+  }
+
+  // Si este dispositivo ya completó el registro en esta sesión, mostrar directamente la pantalla de éxito
+  const alreadyRegisteredHere = sessionStorage.getItem('usam_registered_' + (STATE.sessionId || 'local'));
+  if (alreadyRegisteredHere) {
+    try {
+      const prev = JSON.parse(alreadyRegisteredHere);
+      if (prev.carnet === carnet) {
+        toast(`Ya completaste tu registro a las ${prev.time}`, 'info');
+        showAlreadyRegistered(prev);
+        return;
+      }
+    } catch(e) {}
   }
 
   // Si Firebase está activo, validar contra sesión actual de Firebase
@@ -1999,10 +2061,11 @@ async function validateStep1() {
       document.getElementById('s-token').classList.add('err');
       return;
     }
-    // Verificar duplicados online
-    const dup = await checkDuplicateOnline(carnet, email);
-    if (dup) {
-      toast('Ya existe un registro con este carnet o correo', 'error');
+    // Verificar duplicados online — si ya existe, mostrar pantalla amigable en lugar de bloquear
+    const dupEntry = await getDuplicateEntry(carnet, email);
+    if (dupEntry) {
+      toast(`Ya estás registrado a las ${dupEntry.time}`, 'info');
+      showAlreadyRegistered(dupEntry);
       return;
     }
     // Verificar dispositivo (si está activado)
@@ -2070,8 +2133,22 @@ async function checkDuplicateOnline(carnet, email) {
   try {
     const snap = await get(ref(STATE.fbDb, 'active_session/attendees'));
     const data = snap.val() || {};
-    return Object.values(data).some(e => e.carnet === carnet || e.email.toLowerCase() === email.toLowerCase());
+    return Object.values(data).some(e => e.carnet === carnet || (e.email || '').toLowerCase() === email.toLowerCase());
   } catch { return false; }
+}
+
+// Como checkDuplicateOnline pero devuelve la entrada existente (o null) para mostrar al alumno
+async function getDuplicateEntry(carnet, email) {
+  const { ref, get } = window.firebaseLib;
+  try {
+    const snap = await get(ref(STATE.fbDb, 'active_session/attendees'));
+    const data = snap.val() || {};
+    const emailLow = email.toLowerCase();
+    const found = Object.values(data).find(e =>
+      e.carnet === carnet || (e.email || '').toLowerCase() === emailLow
+    );
+    return found || null;
+  } catch { return null; }
 }
 
 async function checkDeviceUsed() {
@@ -2166,10 +2243,29 @@ function retake() {
   startCamera();
 }
 
+// Bandera para prevenir doble envío
+let SUBMITTING = false;
+
 async function submitAttendance(skipPhoto = false) {
+  // GUARDIA #1: bloqueo contra doble click / doble tap
+  if (SUBMITTING) {
+    console.log('Ignorando segundo envío en curso');
+    return;
+  }
+  SUBMITTING = true;
+
+  // Deshabilitar botones para feedback visual
+  const shutterBtn = document.getElementById('shutterBtn');
+  const retakeBtn = document.getElementById('retakeBtn');
+  if (shutterBtn) {
+    shutterBtn.disabled = true;
+    shutterBtn.textContent = '⏳ Registrando...';
+  }
+  if (retakeBtn) retakeBtn.disabled = true;
+
   const name = document.getElementById('s-name').value.trim();
   const carnet = document.getElementById('s-carnet').value.trim();
-  const email = document.getElementById('s-email').value.trim();
+  const email = document.getElementById('s-email').value.trim().toLowerCase();
   const token = document.getElementById('s-token').value.trim().toUpperCase();
   const photo = skipPhoto ? null : document.getElementById('snapPreview').src;
   const now = Date.now();
@@ -2191,37 +2287,94 @@ async function submitAttendance(skipPhoto = false) {
     deviceFlag: false
   };
 
+  let success = false;
+
   // Subir a Firebase si está online
   if (STATE.online && STATE.fbDb) {
-    const { ref, push, set, serverTimestamp } = window.firebaseLib;
+    const { ref, set, get, serverTimestamp } = window.firebaseLib;
     try {
-      const newRef = push(ref(STATE.fbDb, 'active_session/attendees'));
-      // Verificar duplicado de dispositivo justo antes de escribir
+      // GUARDIA #2: Clave determinística basada en carnet (no permite duplicados físicos)
+      // Si el mismo carnet intenta escribir dos veces, sobrescribe en lugar de duplicar
+      const stableKey = encodeKey('alumno_' + carnet);
+      const writeRef = ref(STATE.fbDb, 'active_session/attendees/' + stableKey);
+
+      // GUARDIA #3: Check final inmediatamente antes de escribir
+      const existing = await get(writeRef);
+      if (existing.exists()) {
+        const prev = existing.val();
+        // Ya está registrado — mostrar mensaje y NO sobrescribir
+        toast(`✓ ${prev.name} ya está registrado a las ${prev.time}`, 'info');
+        showAlreadyRegistered(prev);
+        SUBMITTING = false;
+        return;
+      }
+
+      // Verificar duplicado de dispositivo
       const devCheck = await checkDeviceUsed();
       if (devCheck) entry.deviceFlag = true;
 
-      await set(newRef, { ...entry, timestamp: serverTimestamp() });
+      await set(writeRef, { ...entry, timestamp: serverTimestamp() });
+      success = true;
     } catch(e) {
       console.error('Firebase write error:', e);
-      toast('Error al sincronizar. Reintentando...', 'error');
-      // Guardar localmente como respaldo
-      STATE.log.unshift(entry);
+      toast('Error al sincronizar. Reintenta.', 'error');
+      // Re-habilitar botones para que pueda reintentar
+      if (shutterBtn) {
+        shutterBtn.disabled = false;
+        shutterBtn.textContent = '✅ Confirmar y registrar';
+      }
+      if (retakeBtn) retakeBtn.disabled = false;
+      SUBMITTING = false;
+      return;
     }
   } else {
-    // Modo local
+    // Modo local: validar duplicados localmente
+    const dup = STATE.log.find(e => e.carnet === carnet);
+    if (dup) {
+      toast(`✓ ${dup.name} ya está registrado a las ${dup.time}`, 'info');
+      showAlreadyRegistered(dup);
+      SUBMITTING = false;
+      return;
+    }
     STATE.log.unshift(entry);
     addLogLocal(entry);
+    success = true;
   }
 
   // Mostrar éxito
-  document.getElementById('successThumb').src = photo || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%231a2340%22 width=%22100%22 height=%22100%22/%3E%3Ctext y=%22.9em%22 font-size=%2260%22 x=%2220%22%3E👤%3C/text%3E%3C/svg%3E';
+  if (success) {
+    document.getElementById('successThumb').src = photo || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%231a2340%22 width=%22100%22 height=%22100%22/%3E%3Ctext y=%22.9em%22 font-size=%2260%22 x=%2220%22%3E👤%3C/text%3E%3C/svg%3E';
+    document.getElementById('detailBox').innerHTML = `
+      <div class="detail-row"><span class="dk">Nombre</span><span class="dv">${escapeHtml(name)}</span></div>
+      <div class="detail-row"><span class="dk">Carnet</span><span class="dv">${escapeHtml(carnet)}</span></div>
+      <div class="detail-row"><span class="dk">Correo</span><span class="dv">${escapeHtml(email)}</span></div>
+      <div class="detail-row"><span class="dk">Hora</span><span class="dv">${time}</span></div>
+      ${isLate ? '<div class="detail-row"><span class="dk">Estado</span><span class="dv" style="color:var(--warn)">TARDÍO</span></div>' : '<div class="detail-row"><span class="dk">Estado</span><span class="dv" style="color:var(--accent-3)">A TIEMPO</span></div>'}
+    `;
+    // Marcar este dispositivo como "ya registró en esta sesión" para que no pueda volver al paso 1
+    sessionStorage.setItem('usam_registered_' + (STATE.sessionId || 'local'), JSON.stringify({
+      name, carnet, email, time
+    }));
+    goStep(3);
+  }
+
+  SUBMITTING = false;
+}
+
+// Muestra una pantalla de "ya estás registrado" en lugar de duplicar
+function showAlreadyRegistered(prev) {
+  document.getElementById('successThumb').src = prev.photo || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%231a2340%22 width=%22100%22 height=%22100%22/%3E%3Ctext y=%22.9em%22 font-size=%2260%22 x=%2220%22%3E👤%3C/text%3E%3C/svg%3E';
   document.getElementById('detailBox').innerHTML = `
-    <div class="detail-row"><span class="dk">Nombre</span><span class="dv">${escapeHtml(name)}</span></div>
-    <div class="detail-row"><span class="dk">Carnet</span><span class="dv">${escapeHtml(carnet)}</span></div>
-    <div class="detail-row"><span class="dk">Correo</span><span class="dv">${escapeHtml(email)}</span></div>
-    <div class="detail-row"><span class="dk">Hora</span><span class="dv">${time}</span></div>
-    ${isLate ? '<div class="detail-row"><span class="dk">Estado</span><span class="dv" style="color:var(--warn)">TARDÍO</span></div>' : '<div class="detail-row"><span class="dk">Estado</span><span class="dv" style="color:var(--accent-3)">A TIEMPO</span></div>'}
+    <div class="detail-row"><span class="dk">Estado</span><span class="dv" style="color:var(--accent-3)">YA REGISTRADO ✓</span></div>
+    <div class="detail-row"><span class="dk">Nombre</span><span class="dv">${escapeHtml(prev.name)}</span></div>
+    <div class="detail-row"><span class="dk">Carnet</span><span class="dv">${escapeHtml(prev.carnet)}</span></div>
+    <div class="detail-row"><span class="dk">Hora</span><span class="dv">${prev.time}</span></div>
   `;
+  // Cambiar el icono de éxito a info
+  const icon = document.querySelector('#step3 .success-icon');
+  if (icon) icon.textContent = 'ℹ';
+  const title = document.querySelector('#step3 h2');
+  if (title) title.textContent = 'Ya tienes registro en esta sesión';
   goStep(3);
 }
 
@@ -2487,7 +2640,7 @@ document.getElementById('configModal').addEventListener('click', e => {
 Object.assign(window, {
   switchView, openConfigModal, closeConfigModal, testFirebase, saveFirebaseConfig,
   startSession, rotateQR, stopSession, validateStep1, goStep, handleShutter, retake,
-  exportPDF, exportExcel, exportCSV, clearAttendance, openLb, closeLb,
+  exportPDF, exportExcel, exportCSV, clearAttendance, dedupAttendance, openLb, closeLb,
   renderLog, refreshMonitor,
   // Archivo y PDF nuevo
   loadArchive, openArchiveSession, closeArchiveDetail, deleteArchiveSession,
