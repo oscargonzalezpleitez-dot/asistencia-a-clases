@@ -122,7 +122,8 @@ body::before{
 .aula-scan-bg{position:absolute;inset:0;background:linear-gradient(135deg,#3A2D5C,#1F1838);display:grid;place-items:center}
 .aula-projected{position:absolute;inset:14% 10% 18% 10%;background:linear-gradient(180deg,#fff,#F6EFFF);border-radius:8px;box-shadow:0 16px 32px rgba(0,0,0,.4);transform:perspective(500px) rotateX(8deg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;gap:4px}
 .aula-proj-lbl{font-size:7px;font-weight:700;color:var(--aula-secondary);letter-spacing:1.2px}
-.aula-proj-qr{width:60%;aspect-ratio:1/1;background:repeating-conic-gradient(#1A1430 0% 25%, #fff 0% 50%) 50% / 8% 8%;border:2px solid #1A1430;border-radius:4px}
+.aula-proj-qr{width:62%;aspect-ratio:1/1;background:#fff;border-radius:4px;display:grid;place-items:center;padding:3px}
+.aula-proj-qr canvas, .aula-proj-qr img{width:100%!important;height:100%!important;display:block;image-rendering:pixelated}
 .aula-proj-code{font-size:8px;font-weight:800;color:#1A1430;font-family:var(--mono);letter-spacing:1.6px}
 .aula-scan-mask{position:absolute;inset:0;background:rgba(0,0,0,.55);-webkit-mask-image:radial-gradient(circle at 50% 50%, transparent 38%, #000 39%);mask-image:radial-gradient(circle at 50% 50%, transparent 38%, #000 39%)}
 .aula-scan-frame{position:absolute;left:12%;right:12%;top:12%;bottom:12%}
@@ -1562,6 +1563,23 @@ function renderAula(list, sessionData) {
   const tok = sessionData?.currentToken || STATE.currentToken || '——————';
   document.getElementById('aulaToken').textContent = tok;
   document.getElementById('aulaProjCode').textContent = tok;
+
+  // QR mini en el iPhone — se redibuja solo si cambió el token
+  const qrBox = document.getElementById('aulaProjQR');
+  if (qrBox && tok && tok !== '——————' && qrBox.dataset.token !== tok) {
+    qrBox.dataset.token = tok;
+    qrBox.innerHTML = '';
+    try {
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(qrBox, { text: tok, width: 120, height: 120,
+          colorDark:'#1A1430', colorLight:'#ffffff',
+          correctLevel: QRCode.CorrectLevel.M });
+      }
+    } catch(e) {}
+  } else if (qrBox && (!tok || tok === '——————')) {
+    qrBox.innerHTML = '<div style="font-size:7px;color:#9A95B5;font-family:monospace;letter-spacing:1px">SIN QR</div>';
+    qrBox.dataset.token = '';
+  }
 
   // Próxima rotación / inicio
   const remain = STATE.remaining || 0;
