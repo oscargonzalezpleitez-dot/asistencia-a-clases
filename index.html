@@ -1091,11 +1091,12 @@ async function connectFirebaseProjector() {
     const sessionRef = ref(STATE.fbDb, 'active_session');
     onValue(sessionRef, snap => {
       const data = snap.val();
-      renderProjector(data);
-    });
-  } catch(e) {
-    console.error('Projector connect error:', e);
-    setProjStatus('ERROR DE CONEXIÓN');
+     if (sessionData.lastRotation) {
+    PROJ_LAST_ROTATION = sessionData.lastRotation;
+    if (!PROJ_TIMER_INTERVAL) {
+      PROJ_TIMER_INTERVAL = setInterval(updateProjectorTimer, 1000);
+    }
+    updateProjectorTimer();
   }
 }
 
@@ -1150,28 +1151,15 @@ function renderProjector(sessionData) {
 
 function updateProjectorTimer() {
   if (!PROJ_LAST_ROTATION) return;
-  // Calcular tiempo restante: (lastRotation + duration*1000) - now
-  // Como no sabemos duration con certeza, observamos: si > 5min asumimos 5, si > 3 asumimos 3, etc.
-  // Pero el dato real lo tenemos al recibir cada rotación.
-  const elapsed = (Date.now() - PROJ_LAST_ROTATION) / 1000;
-  // Adivinar duration: si pasaron <60s desde última rotación es 60, <120 es 120, etc.
-  // Mejor: simplemente mostrar tiempo desde última rotación
-  const secs = Math.max(0, Math.round(elapsed));
   const tEl = document.getElementById('projTimer');
   const frameEl = document.getElementById('projQrFrame');
+  if (!tEl || !frameEl) return;
 
-  // Mostrar como tiempo desde rotación
-  const mins = Math.floor(secs / 60);
-  const remSecs = secs % 60;
-  tEl.textContent = mins > 0 ? `${mins}:${String(remSecs).padStart(2,'0')}` : `${secs}s`;
-
-  // Glow de advertencia: si han pasado más de 50 segundos desde la última rotación
-  // (probablemente esté por rotar pronto si la duración es 60s)
-  // Esta es una aproximación visual.
-  tEl.classList.remove('warn');
-  frameEl.classList.remove('warn-glow');
+  const elapsed = Math.max(0, Math.round((Date.now() - PROJ_LAST_ROTATION) / 1000));
+  const mins = Math.floor(elapsed / 60);
+  const remSecs = elapsed % 60;
+  tEl.textContent = mins > 0 ? mins + ':' + String(remSecs).padStart(2,'0') : elapsed + 's';
 }
-
 function drawProjectorQR(text) {
   const dest = document.getElementById('projQrCanvas');
   if (!dest || !window.QRCode) return;
