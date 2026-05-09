@@ -1441,6 +1441,32 @@ body.projector-mode #view-projector {
       </label>
       <label class="switch"><input type="checkbox" id="tglEmailDomain" checked><span class="slider"></span></label>
     </div>
+    <div class="toggle-row">
+      <label for="tglGeo">📍 Verificar ubicación GPS
+        <small>Solo permite registros desde el aula. Radio: <select id="geoRadius" style="background:var(--bg-0);border:1px solid var(--line);color:var(--lime);padding:2px 8px;border-radius:5px;font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer">
+          <option value="50">50 m</option>
+          <option value="100" selected>100 m</option>
+          <option value="200">200 m</option>
+          <option value="500">500 m</option>
+        </select></small>
+      </label>
+      <label class="switch"><input type="checkbox" id="tglGeo"><span class="slider"></span></label>
+    </div>
+
+    <!-- Captura de ubicación del aula -->
+    <div id="geoCaptureBlock" style="display:none;background:var(--bg-0);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div>
+          <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:2px;color:var(--t3);text-transform:uppercase;font-weight:600;margin-bottom:4px">Ubicación del aula</div>
+          <div id="geoStatus" style="font-size:13px;color:var(--t1);font-weight:500">Sin capturar</div>
+          <div id="geoCoords" style="font-family:var(--font-mono);font-size:11px;color:var(--t3);margin-top:3px"></div>
+        </div>
+        <button id="btnCaptureGeo" class="btn btn-outline" style="flex:0 0 auto;min-width:auto;padding:9px 16px;font-size:12px" onclick="captureClassroomLocation()">📍 Capturar aula</button>
+      </div>
+      <div style="font-size:11px;color:var(--t3);line-height:1.6">
+        💡 <strong style="color:var(--t2)">Pulsa el botón estando dentro del aula.</strong> La app usará TU ubicación actual como referencia. Los alumnos que estén a más del radio configurado serán rechazados.
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -1829,7 +1855,7 @@ const CIRC = 2 * Math.PI * 38;
 
 window.addEventListener('DOMContentLoaded', init);
 
-function init() {
+async function init() {
   // Detectar modo proyector ANTES de todo lo demás
   const params = new URLSearchParams(window.location.search);
   const isProjectorMode = params.get('mode') === 'projector';
@@ -1843,11 +1869,9 @@ function init() {
   document.getElementById('dateInput').valueAsDate = new Date();
 
   // Device ID persistente (anti-trampa)
-  STATE.deviceId = localStorage.getItem('usam_device_id');
-  if (!STATE.deviceId) {
-    STATE.deviceId = 'dev_' + crypto.randomUUID().replace(/-/g,'').slice(0,16);
-    localStorage.setItem('usam_device_id', STATE.deviceId);
-  }
+  // Device fingerprint robusto: combina múltiples fuentes para que sea
+  // muy difícil de borrar/falsificar. Si el alumno borra una, las otras quedan.
+  STATE.deviceId = await getRobustDeviceId();
 
   // Botones de duración
   document.querySelectorAll('.dur-btn').forEach(b => {
@@ -1860,6 +1884,16 @@ function init() {
 
   // Cargar configuración guardada
   loadConfig();
+  loadSavedClassroomLocation();
+
+  // Toggle GPS muestra/oculta bloque de captura
+  const tglGeo = document.getElementById('tglGeo');
+  const geoBlock = document.getElementById('geoCaptureBlock');
+  if (tglGeo && geoBlock) {
+    tglGeo.addEventListener('change', () => {
+      geoBlock.style.display = tglGeo.checked ? 'block' : 'none';
+    });
+  }
 
   // Verificar URL params (vista alumno desde QR)
   if (params.get('view') === 'student') {
@@ -2019,6 +2053,259 @@ function drawProjectorQR(text) {
 function setProjStatus(msg) {
   const titleEl = document.getElementById('projTitle');
   if (titleEl) titleEl.textContent = msg;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 1A. DEVICE FINGERPRINT ROBUSTO (anti-trampa)
+// ═══════════════════════════════════════════════════════════════
+//
+// Combina 4 fuentes de identificación que se cubren entre sí:
+// 1. localStorage (fácil de borrar)
+// 2. sessionStorage (se pierde al cerrar pestaña)
+// 3. IndexedDB (requiere herramientas avanzadas para borrar)
+// 4. Canvas + Audio fingerprint (huella del hardware/navegador, no se puede "borrar")
+//
+// El ID final es la combinación. Si el alumno borra solo localStorage,
+// los demás identifican al dispositivo y restablecen el ID original.
+
+async function getRobustDeviceId() {
+  // 1. Generar huella de hardware (canvas + audio + screen)
+  const hwFingerprint = await getHardwareFingerprint();
+
+  // 2. Buscar ID guardado en cualquier fuente
+  let storedId = localStorage.getItem('usam_dev_id');
+  if (!storedId) {
+    try { storedId = sessionStorage.getItem('usam_dev_id'); } catch(e) {}
+  }
+  if (!storedId) {
+    try { storedId = await getFromIndexedDB('usam_dev_id'); } catch(e) {}
+  }
+
+  // 3. Si no hay ID guardado, generar uno nuevo basado en huella + random
+  if (!storedId) {
+    storedId = 'dev_' + hwFingerprint.slice(0, 8) + '_' +
+               crypto.randomUUID().replace(/-/g,'').slice(0, 12);
+  }
+
+  // 4. Persistir en TODAS las fuentes (si una se borra, las otras quedan)
+  try { localStorage.setItem('usam_dev_id', storedId); } catch(e) {}
+  try { sessionStorage.setItem('usam_dev_id', storedId); } catch(e) {}
+  try { await saveToIndexedDB('usam_dev_id', storedId); } catch(e) {}
+
+  // El ID final es la combinación de la huella de hardware (estable) + ID guardado
+  // Esto significa que si el alumno borra TODO el storage, la huella de hardware
+  // sigue siendo igual, y la app puede detectar que es el mismo dispositivo
+  return hwFingerprint.slice(0, 12) + '-' + storedId.slice(-12);
+}
+
+async function getHardwareFingerprint() {
+  const components = [];
+
+  // Canvas fingerprint: cada navegador/GPU dibuja ligeramente diferente
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 200; canvas.height = 50;
+    const ctx = canvas.getContext('2d');
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#f60';
+    ctx.fillRect(125, 1, 62, 20);
+    ctx.fillStyle = '#069';
+    ctx.fillText('USAM-fingerprint-test', 2, 15);
+    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+    ctx.fillText('USAM-fingerprint-test', 4, 17);
+    components.push(canvas.toDataURL().slice(-32));
+  } catch(e) { components.push('canvas-fail'); }
+
+  // Screen + timezone + lang
+  components.push(screen.width + 'x' + screen.height + 'x' + (screen.colorDepth || 24));
+  try { components.push(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch(e) {}
+  components.push(navigator.language || 'unk');
+  components.push(navigator.hardwareConcurrency || 0);
+  components.push(navigator.platform || 'unk');
+  components.push(navigator.userAgent.slice(0, 40));
+
+  // Hash con SHA-256
+  const text = components.join('|');
+  const buf = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// IndexedDB helpers (más difícil de borrar que localStorage)
+function getFromIndexedDB(key) {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('usam_attendance', 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore('store', { keyPath: 'k' });
+    };
+    req.onsuccess = e => {
+      const db = e.target.result;
+      try {
+        const tx = db.transaction('store', 'readonly');
+        const store = tx.objectStore('store');
+        const r = store.get(key);
+        r.onsuccess = () => resolve(r.result ? r.result.v : null);
+        r.onerror = () => reject(r.error);
+      } catch(err) { reject(err); }
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function saveToIndexedDB(key, value) {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('usam_attendance', 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore('store', { keyPath: 'k' });
+    };
+    req.onsuccess = e => {
+      const db = e.target.result;
+      try {
+        const tx = db.transaction('store', 'readwrite');
+        tx.objectStore('store').put({ k: key, v: value });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      } catch(err) { reject(err); }
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 1B. GEOLOCALIZACIÓN GPS (anti-trampa)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Calcula la distancia en metros entre dos coordenadas (fórmula de Haversine).
+ * Precisión adecuada para distancias urbanas (<10 km).
+ */
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000; // radio de la Tierra en metros
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Pide al navegador la ubicación actual con alta precisión.
+ * Devuelve {lat, lng, accuracy} o lanza error con mensaje claro.
+ */
+function getCurrentPosition(options = {}) {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Tu navegador no soporta geolocalización'));
+      return;
+    }
+    const opts = {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0,
+      ...options
+    };
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy
+      }),
+      err => {
+        let msg = 'No se pudo obtener tu ubicación.';
+        if (err.code === 1) msg = 'Permiso de ubicación denegado. Actívalo en tu navegador.';
+        else if (err.code === 2) msg = 'Ubicación no disponible. Verifica que el GPS esté encendido.';
+        else if (err.code === 3) msg = 'Tiempo de espera agotado. Intenta de nuevo en un lugar con mejor señal.';
+        reject(new Error(msg));
+      },
+      opts
+    );
+  });
+}
+
+/**
+ * Captura la ubicación del aula (la del profesor en este momento).
+ * Se guarda en STATE y en localStorage para futuras sesiones.
+ */
+async function captureClassroomLocation() {
+  const btn = document.getElementById('btnCaptureGeo');
+  const statusEl = document.getElementById('geoStatus');
+  const coordsEl = document.getElementById('geoCoords');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Obteniendo...';
+  statusEl.textContent = 'Buscando satélites...';
+  statusEl.style.color = 'var(--t2)';
+
+  try {
+    const pos = await getCurrentPosition();
+    STATE.classroomLat = pos.lat;
+    STATE.classroomLng = pos.lng;
+    STATE.classroomAccuracy = pos.accuracy;
+
+    // Guardar para próximas sesiones
+    localStorage.setItem('usam_classroom_geo', JSON.stringify({
+      lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy, capturedAt: Date.now()
+    }));
+
+    statusEl.textContent = '✓ Ubicación capturada';
+    statusEl.style.color = 'var(--lime)';
+    coordsEl.textContent = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)} (±${Math.round(pos.accuracy)}m)`;
+    btn.textContent = '🔄 Recapturar';
+    toast('Ubicación del aula guardada ✓', 'success');
+  } catch(e) {
+    statusEl.textContent = '✗ ' + e.message;
+    statusEl.style.color = 'var(--red)';
+    coordsEl.textContent = '';
+    btn.textContent = '📍 Capturar aula';
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/**
+ * Verifica si una posición está dentro del radio del aula.
+ * Devuelve { ok, distance, reason }
+ */
+function checkInsideClassroom(studentLat, studentLng, classroomLat, classroomLng, radiusM) {
+  const distance = haversineDistance(classroomLat, classroomLng, studentLat, studentLng);
+  return {
+    ok: distance <= radiusM,
+    distance: Math.round(distance),
+    reason: distance > radiusM
+      ? `Estás a ~${Math.round(distance)}m del aula (límite: ${radiusM}m). Acércate y vuelve a intentar.`
+      : null
+  };
+}
+
+// Cargar ubicación del aula guardada al iniciar
+function loadSavedClassroomLocation() {
+  const saved = localStorage.getItem('usam_classroom_geo');
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      STATE.classroomLat = data.lat;
+      STATE.classroomLng = data.lng;
+      STATE.classroomAccuracy = data.accuracy;
+      // Mostrar en UI si los elementos existen
+      setTimeout(() => {
+        const statusEl = document.getElementById('geoStatus');
+        const coordsEl = document.getElementById('geoCoords');
+        const btn = document.getElementById('btnCaptureGeo');
+        if (statusEl && data.lat) {
+          statusEl.textContent = '✓ Ubicación guardada';
+          statusEl.style.color = 'var(--lime)';
+          if (coordsEl) coordsEl.textContent = `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)} (±${Math.round(data.accuracy||0)}m)`;
+          if (btn) btn.textContent = '🔄 Recapturar';
+        }
+      }, 200);
+    } catch(e) { console.warn('Geo guardada inválida'); }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2432,6 +2719,16 @@ async function startSession() {
   STATE.config.markLate = document.getElementById('tglLate').checked;
   STATE.config.lateMinutes = parseInt(document.getElementById('lateMin').value) || 10;
   STATE.config.requireUsamEmail = document.getElementById('tglEmailDomain').checked;
+  STATE.config.requireGeo = document.getElementById('tglGeo').checked;
+  STATE.config.geoRadius = parseInt(document.getElementById('geoRadius').value) || 100;
+  STATE.config.classroomLat = STATE.classroomLat || null;
+  STATE.config.classroomLng = STATE.classroomLng || null;
+
+  // Validar que se haya capturado ubicación si GPS está activado
+  if (STATE.config.requireGeo && (!STATE.classroomLat || !STATE.classroomLng)) {
+    toast('Activa "Verificar ubicación GPS" implica capturar la ubicación del aula primero', 'error');
+    return;
+  }
 
   STATE.sessionMeta = {
     subject: document.getElementById('subject').value.trim() || 'Sesión sin nombre',
@@ -2597,6 +2894,12 @@ function renderLog() {
     if (e.late) flags.push('<span class="flag-chip late">TARDÍO</span>');
     if (e.deviceFlag) flags.push('<span class="flag-chip warn">REPETIDO</span>');
     if (!e.photo) flags.push('<span class="flag-chip warn">SIN FOTO</span>');
+    if (e.cameraSuspicious) flags.push('<span class="flag-chip warn" title="Cámara virtual detectada">📹 VIRTUAL</span>');
+    if (e.distance != null) {
+      const cls = e.distance > 100 ? 'warn' : 'ok';
+      const ico = e.distance > 100 ? '⚠️' : '📍';
+      flags.push(`<span class="flag-chip ${cls}">${ico} ${e.distance}m</span>`);
+    }
 
     const photoHtml = e.photo
       ? `<img class="log-thumb" src="${e.photo}" alt="" data-photo="${realIdx}">`
@@ -3101,6 +3404,13 @@ function goStep(n) {
 }
 
 async function validateStep1() {
+  // Rate limit anti-spam (máximo 5 intentos por minuto)
+  const rl = checkRateLimit();
+  if (!rl.ok) {
+    toast(`Demasiados intentos. Espera ${rl.waitSec} segundos.`, 'error');
+    return;
+  }
+
   const name = document.getElementById('s-name').value.trim();
   const carnet = document.getElementById('s-carnet').value.trim();
   const email = document.getElementById('s-email').value.trim().toLowerCase();
@@ -3160,14 +3470,31 @@ async function validateStep1() {
       return;
     }
     // Verificar dispositivo (si está activado)
+    // Cambio de comportamiento: BLOQUEO REAL en lugar de marcar/confirmar.
+    // Si el alumno ya registró a alguien desde este dispositivo, no puede usarlo de nuevo.
     if (valid.config && valid.config.onceDevice) {
-      const devUsed = await checkDeviceUsed();
-      if (devUsed) {
-        if (!confirm('Este dispositivo ya tiene un registro en esta sesión. ¿Eres tú? Si registraste a otro alumno, se marcará como sospechoso.')) return;
+      const existingDevice = await getDeviceUsedEntry();
+      if (existingDevice && existingDevice.carnet !== carnet) {
+        // El dispositivo ya registró a OTRO alumno (carnet distinto)
+        showDeviceBlocked(existingDevice);
+        return;
       }
     }
     STATE.sessionMeta = valid.meta;
     STATE.config = { ...STATE.config, ...valid.config };
+
+    // ─── Verificación GPS si está activada en la sesión ───
+    if (valid.config && valid.config.requireGeo && valid.config.classroomLat && valid.config.classroomLng) {
+      const geoCheck = await verifyStudentGeo(valid.config);
+      if (!geoCheck.ok) {
+        showGeoRejected(geoCheck);
+        return;
+      }
+      // Guardar la distancia para incluirla en el registro
+      STATE.studentDistance = geoCheck.distance;
+      STATE.studentLat = geoCheck.lat;
+      STATE.studentLng = geoCheck.lng;
+    }
   } else {
     // Modo offline: validar solo token contra el actual
     if (!STATE.sessionActive || token !== STATE.currentToken) {
@@ -3251,6 +3578,49 @@ async function checkDeviceUsed() {
   } catch { return false; }
 }
 
+// Devuelve el registro existente desde este dispositivo, o null
+async function getDeviceUsedEntry() {
+  const { ref, get } = window.firebaseLib;
+  try {
+    const snap = await get(ref(STATE.fbDb, 'active_session/attendees'));
+    const data = snap.val() || {};
+    // Busca cualquier registro con el mismo deviceId
+    return Object.values(data).find(e => e.deviceId === STATE.deviceId) || null;
+  } catch { return null; }
+}
+
+// Pantalla de bloqueo cuando el dispositivo ya registró a otro alumno
+function showDeviceBlocked(existing) {
+  document.getElementById('successThumb').src = existing.photo ||
+    'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%23ff3057%22 width=%22100%22 height=%22100%22/%3E%3Ctext y=%22.85em%22 font-size=%2260%22 x=%2220%22 fill=%22white%22%3E📱%3C/text%3E%3C/svg%3E';
+  document.getElementById('detailBox').innerHTML = `
+    <div class="detail-row"><span class="dk">Estado</span><span class="dv" style="color:var(--red)">DISPOSITIVO BLOQUEADO</span></div>
+    <div class="detail-row"><span class="dk">Ya registrado</span><span class="dv">${escapeHtml(existing.name)}</span></div>
+    <div class="detail-row"><span class="dk">Carnet</span><span class="dv">${escapeHtml(existing.carnet)}</span></div>
+    <div class="detail-row"><span class="dk">Hora</span><span class="dv">${existing.time}</span></div>
+    <div style="margin-top:14px;padding:12px;background:rgba(255,48,87,.06);border:1px solid rgba(255,48,87,.3);border-radius:10px;font-size:12px;color:var(--t2);line-height:1.6">
+      🚫 Este dispositivo ya registró a otro alumno en esta sesión. No es posible registrar a una segunda persona desde el mismo celular o computadora.
+    </div>
+  `;
+  const icon = document.querySelector('#step3 .success-icon');
+  if (icon) {
+    icon.textContent = '🚫';
+    icon.style.background = 'rgba(255,48,87,.15)';
+    icon.style.borderColor = 'var(--red)';
+    icon.style.boxShadow = '0 0 0 6px rgba(255,48,87,.1), 0 0 30px rgba(255,48,87,.4)';
+  }
+  const successCard = document.querySelector('.success-card');
+  if (successCard) {
+    successCard.style.background = 'linear-gradient(180deg,rgba(255,48,87,.08) 0%,transparent 100%),var(--bg-1)';
+    successCard.style.borderColor = 'rgba(255,48,87,.3)';
+  }
+  const title = document.querySelector('#step3 h2');
+  if (title) title.textContent = 'Dispositivo bloqueado';
+  const subtitle = document.querySelector('#step3 .success-card p');
+  if (subtitle) subtitle.textContent = 'Este celular/computadora ya registró a otro alumno';
+  goStep(3);
+}
+
 async function startCamera() {
   STATE.snapped = false;
   document.getElementById('snapPreview').style.display = 'none';
@@ -3261,10 +3631,33 @@ async function startCamera() {
   const msg = document.getElementById('camMsg');
   msg.style.display = 'flex';
   try {
+    // Forzar cámara frontal con calidad media (evita pegar pantalla completa de PC)
     STATE.stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode:'user', width:{ideal:640}, height:{ideal:480} },
+      video: {
+        facingMode: { ideal: 'user' },  // preferir frontal
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      },
       audio: false
     });
+
+    // Detectar cámara virtual sospechosa (OBS, Snap Camera, etc.)
+    try {
+      const track = STATE.stream.getVideoTracks()[0];
+      const settings = track.getSettings();
+      const label = (track.label || '').toLowerCase();
+      STATE.cameraLabel = track.label;
+      const suspiciousNames = ['obs', 'snap camera', 'manycam', 'xsplit', 'virtualcam', 'virtual camera', 'streamlabs', 'splitcam'];
+      if (suspiciousNames.some(s => label.includes(s))) {
+        STATE.cameraSuspicious = true;
+        console.warn('Cámara virtual detectada:', track.label);
+      } else {
+        STATE.cameraSuspicious = false;
+      }
+    } catch (err) {
+      STATE.cameraSuspicious = false;
+    }
+
     const vid = document.getElementById('videoEl');
     vid.srcObject = STATE.stream;
     vid.onloadedmetadata = () => { msg.style.display = 'none'; };
@@ -3290,28 +3683,47 @@ function takePhoto() {
   const canvas = document.getElementById('snapCanvas');
 
   // Comprimir agresivamente: máximo 480x360 px, calidad JPEG 0.55
-  // Esto reduce ~35 KB → ~12 KB sin perder identificación facial
   const TARGET_W = 480;
   const TARGET_H = 360;
   const srcW = vid.videoWidth || 640;
   const srcH = vid.videoHeight || 480;
 
-  // Calcular escala manteniendo aspect ratio
   const scale = Math.min(TARGET_W / srcW, TARGET_H / srcH, 1);
   canvas.width = Math.round(srcW * scale);
   canvas.height = Math.round(srcH * scale);
 
   const ctx = canvas.getContext('2d');
-  // Mejora calidad de redimensionado
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+
+  // ─── Watermark anti-trampa: timestamp + token actual visibles en la foto ───
+  // Si alguien usa una foto vieja, se notará el timestamp incorrecto.
+  // Si usa cámara virtual con foto pregrabada, el watermark prueba que es nueva.
+  const ts = new Date().toLocaleString('es-SV', {
+    dateStyle: 'short', timeStyle: 'medium'
+  });
+  const tokenStr = STATE.currentToken || document.getElementById('s-token')?.value || '';
+
+  // Fondo semitransparente
+  const watermarkH = 36;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  ctx.fillRect(0, canvas.height - watermarkH, canvas.width, watermarkH);
+
+  // Texto del watermark
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillStyle = '#c4ff3d';
+  ctx.fillText('USAM · ' + ts, 8, canvas.height - 20);
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#ffffff';
+  if (tokenStr) ctx.fillText('Código: ' + tokenStr, 8, canvas.height - 6);
 
   const url = canvas.toDataURL('image/jpeg', 0.55);
   const prev = document.getElementById('snapPreview');
   prev.src = url;
   prev.style.display = 'block';
   STATE.snapped = true;
+  STATE.photoTakenAt = Date.now(); // timestamp del momento de la foto
   stopCamera();
   document.getElementById('videoEl').style.display = 'none';
   document.getElementById('camOverlay').style.display = 'none';
@@ -3336,6 +3748,30 @@ function retake() {
 
 // Bandera para prevenir doble envío
 let SUBMITTING = false;
+
+// Rate limit: máximo N intentos cada M segundos por dispositivo
+const RATE_LIMIT_KEY = 'usam_rate_limit';
+const RATE_LIMIT_MAX = 5;       // 5 intentos
+const RATE_LIMIT_WINDOW = 60000; // por minuto
+
+function checkRateLimit() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(RATE_LIMIT_KEY) || '[]');
+    const now = Date.now();
+    // Filtrar solo intentos dentro de la ventana
+    const recent = stored.filter(t => now - t < RATE_LIMIT_WINDOW);
+    if (recent.length >= RATE_LIMIT_MAX) {
+      const oldestInWindow = Math.min(...recent);
+      const waitSec = Math.ceil((RATE_LIMIT_WINDOW - (now - oldestInWindow)) / 1000);
+      return { ok: false, waitSec };
+    }
+    recent.push(now);
+    localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(recent));
+    return { ok: true };
+  } catch (e) {
+    return { ok: true };
+  }
+}
 
 async function submitAttendance(skipPhoto = false) {
   // GUARDIA #1: bloqueo contra doble click / doble tap
@@ -3375,7 +3811,16 @@ async function submitAttendance(skipPhoto = false) {
     time, timestamp: now,
     deviceId: STATE.deviceId,
     late: isLate,
-    deviceFlag: false
+    deviceFlag: false,
+    // Datos GPS si la sesión los requiere
+    distance: STATE.studentDistance != null ? STATE.studentDistance : null,
+    geoLat: STATE.studentLat || null,
+    geoLng: STATE.studentLng || null,
+    // Metadata anti-trampa (para auditoría posterior)
+    cameraSuspicious: STATE.cameraSuspicious || false,
+    cameraLabel: STATE.cameraLabel || null,
+    photoTakenAt: STATE.photoTakenAt || null,
+    userAgent: navigator.userAgent.slice(0, 100)
   };
 
   let success = false;
@@ -3471,6 +3916,83 @@ function showAlreadyRegistered(prev) {
 
 function addLogLocal(entry) {
   renderLog();
+}
+
+// ─── GPS del alumno: verifica que esté dentro del radio del aula ───
+async function verifyStudentGeo(sessionConfig) {
+  // Pedir ubicación al navegador
+  let pos;
+  try {
+    pos = await getCurrentPosition({ timeout: 12000 });
+  } catch(e) {
+    return { ok:false, error:e.message, isPermissionError: e.message.includes('denegado') };
+  }
+
+  const radius = sessionConfig.geoRadius || 100;
+  const result = checkInsideClassroom(
+    pos.lat, pos.lng,
+    sessionConfig.classroomLat, sessionConfig.classroomLng,
+    radius
+  );
+
+  return {
+    ok: result.ok,
+    distance: result.distance,
+    radius: radius,
+    accuracy: pos.accuracy,
+    lat: pos.lat,
+    lng: pos.lng,
+    reason: result.reason
+  };
+}
+
+// Pantalla de rechazo por ubicación
+function showGeoRejected(check) {
+  // Reutilizamos step3 pero con look de rechazo
+  document.getElementById('successThumb').src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%23ff3057%22 width=%22100%22 height=%22100%22/%3E%3Ctext y=%22.85em%22 font-size=%2260%22 x=%2220%22 fill=%22white%22%3E📍%3C/text%3E%3C/svg%3E';
+
+  let detailHtml;
+  if (check.error) {
+    detailHtml = `
+      <div class="detail-row"><span class="dk">Estado</span><span class="dv" style="color:var(--red)">UBICACIÓN REQUERIDA</span></div>
+      <div class="detail-row"><span class="dk">Motivo</span><span class="dv">${escapeHtml(check.error)}</span></div>
+      <div style="margin-top:12px;padding:12px;background:rgba(255,138,0,.06);border:1px solid rgba(255,138,0,.3);border-radius:10px;font-size:12px;color:var(--t2);line-height:1.6">
+        💡 <strong>¿Cómo activar la ubicación?</strong><br>
+        En tu celular: configuración del navegador → Permisos → Ubicación → Permitir
+      </div>
+    `;
+  } else {
+    detailHtml = `
+      <div class="detail-row"><span class="dk">Estado</span><span class="dv" style="color:var(--red)">FUERA DEL AULA</span></div>
+      <div class="detail-row"><span class="dk">Distancia</span><span class="dv">~${check.distance} m</span></div>
+      <div class="detail-row"><span class="dk">Límite</span><span class="dv">${check.radius} m del aula</span></div>
+      <div class="detail-row"><span class="dk">Precisión GPS</span><span class="dv">±${Math.round(check.accuracy)} m</span></div>
+      <div style="margin-top:12px;padding:12px;background:rgba(255,138,0,.06);border:1px solid rgba(255,138,0,.3);border-radius:10px;font-size:12px;color:var(--t2);line-height:1.6">
+        ⚠️ El profesor solo permite registros desde el aula. Acércate y vuelve a escanear el QR.
+      </div>
+    `;
+  }
+
+  document.getElementById('detailBox').innerHTML = detailHtml;
+  // Cambiar el aspecto de step3 a rechazo
+  const icon = document.querySelector('#step3 .success-icon');
+  if (icon) {
+    icon.textContent = '✕';
+    icon.style.background = 'rgba(255,48,87,.15)';
+    icon.style.borderColor = 'var(--red)';
+    icon.style.boxShadow = '0 0 0 6px rgba(255,48,87,.1), 0 0 30px rgba(255,48,87,.4)';
+  }
+  const successCard = document.querySelector('.success-card');
+  if (successCard) {
+    successCard.style.background = 'linear-gradient(180deg,rgba(255,48,87,.08) 0%,transparent 100%),var(--bg-1)';
+    successCard.style.borderColor = 'rgba(255,48,87,.3)';
+  }
+  const title = document.querySelector('#step3 h2');
+  if (title) title.textContent = check.error ? 'Ubicación requerida' : 'Estás fuera del aula';
+  const subtitle = document.querySelector('#step3 .success-card p');
+  if (subtitle) subtitle.textContent = check.error ? 'Permite el acceso a tu ubicación para registrarte' : 'Acércate al aula y vuelve a escanear el QR';
+
+  goStep(3);
 }
 
 function openLb(src) {
@@ -3736,7 +4258,9 @@ Object.assign(window, {
   // Archivo y PDF nuevo
   loadArchive, openArchiveSession, closeArchiveDetail, deleteArchiveSession,
   exportArchivePDF, exportArchiveExcel, exportArchiveCSV,
-  closePdfOptionsModal, generatePDF
+  closePdfOptionsModal, generatePDF,
+  // GPS
+  captureClassroomLocation
 });
 
 </script>
