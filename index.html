@@ -1091,12 +1091,11 @@ async function connectFirebaseProjector() {
     const sessionRef = ref(STATE.fbDb, 'active_session');
     onValue(sessionRef, snap => {
       const data = snap.val();
-     if (sessionData.lastRotation) {
-    PROJ_LAST_ROTATION = sessionData.lastRotation;
-    if (!PROJ_TIMER_INTERVAL) {
-      PROJ_TIMER_INTERVAL = setInterval(updateProjectorTimer, 1000);
-    }
-    updateProjectorTimer();
+      renderProjector(data);
+    });
+  } catch(e) {
+    console.error('Projector connect error:', e);
+    setProjStatus('ERROR DE CONEXIÓN');
   }
 }
 
@@ -1139,12 +1138,11 @@ function renderProjector(sessionData) {
   drawProjectorQR(qrUrl);
 
   // Iniciar/actualizar timer de rotación basado en lastRotation
-  if (sessionData.lastRotation && sessionData.config) {
+  if (sessionData.lastRotation) {
     PROJ_LAST_ROTATION = sessionData.lastRotation;
-    // Estimar duración mirando si la sesión guardó duration en config
-    // (si no, asumimos 120s por defecto)
-    if (PROJ_TIMER_INTERVAL) clearInterval(PROJ_TIMER_INTERVAL);
-    PROJ_TIMER_INTERVAL = setInterval(updateProjectorTimer, 1000);
+    if (!PROJ_TIMER_INTERVAL) {
+      PROJ_TIMER_INTERVAL = setInterval(updateProjectorTimer, 1000);
+    }
     updateProjectorTimer();
   }
 }
@@ -1160,6 +1158,7 @@ function updateProjectorTimer() {
   const remSecs = elapsed % 60;
   tEl.textContent = mins > 0 ? mins + ':' + String(remSecs).padStart(2,'0') : elapsed + 's';
 }
+
 function drawProjectorQR(text) {
   const dest = document.getElementById('projQrCanvas');
   if (!dest || !window.QRCode) return;
