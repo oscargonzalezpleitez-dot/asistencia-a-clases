@@ -124,6 +124,8 @@ body::after {
   box-shadow: 0 0 0 1px rgba(196,255,61,0.3), 0 4px 20px rgba(196,255,61,0.4);
   position: relative;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  user-select: none;
 }
 .nav-mark:hover { transform: rotate(-8deg) scale(1.05); }
 .nav-mark::after {
@@ -1375,21 +1377,22 @@ body.projector-mode #view-projector {
 
 <!-- ════════════ NAV ════════════ -->
 <nav class="nav">
-  <div class="nav-brand">
-    <div class="nav-mark">📋</div>
+  <div class="nav-brand" id="navBrand" title="Acceso del profesor">
+    <div class="nav-mark" id="navMark">📋</div>
     <div class="nav-title"><b>USAM</b> · ASISTENCIA QR</div>
   </div>
   <div class="nav-tabs">
-    <button class="tab-btn active" id="tabP" onclick="switchView('prof', this)">Profesor</button>
-    <button class="tab-btn" id="tabM" onclick="switchView('monitor', this)">Monitor</button>
-    <button class="tab-btn" id="tabA" onclick="switchView('archive', this)">Archivo</button>
-    <button class="tab-btn" id="tabS" onclick="switchView('student', this)">Alumno</button>
+    <button class="tab-btn teacher-tab" id="tabP" onclick="switchView('prof', this)" style="display:none">Profesor</button>
+    <button class="tab-btn teacher-tab" id="tabM" onclick="switchView('monitor', this)" style="display:none">Monitor</button>
+    <button class="tab-btn teacher-tab" id="tabA" onclick="switchView('archive', this)" style="display:none">Archivo</button>
+    <button class="tab-btn active" id="tabS" onclick="switchView('student', this)">Alumno</button>
+    <button class="tab-btn teacher-tab" id="tabLogout" onclick="teacherLogout()" style="display:none;color:var(--red)" title="Cerrar sesión de profesor">🔒</button>
   </div>
   <span class="pill off" id="sessionPill"><span class="dot"></span>SIN SESIÓN</span>
 </nav>
 
 <!-- ════════════ VISTA PROFESOR ════════════ -->
-<section id="view-prof" class="view active">
+<section id="view-prof" class="view">
 
   <div class="setup-notice" id="setupNotice" style="display:none">
     <h4>⚙️ Configuración inicial requerida</h4>
@@ -1617,7 +1620,7 @@ body.projector-mode #view-projector {
 </section>
 
 <!-- ════════════ VISTA ALUMNO ════════════ -->
-<section id="view-student" class="view">
+<section id="view-student" class="view active">
   <div class="student-wrap">
 
     <!-- Paso 1: datos -->
@@ -1716,6 +1719,48 @@ body.projector-mode #view-projector {
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox" onclick="closeLb()">
   <img id="lbImg" alt="">
+</div>
+
+<!-- ════════════ MODAL PIN DEL PROFESOR ════════════ -->
+<div class="modal-bg" id="teacherPinModal" onclick="if(event.target===this)closeTeacherPin()">
+  <div class="modal" style="max-width:420px">
+    <h3 id="pinModalTitle">🔐 Acceso del profesor</h3>
+    <p class="sub" id="pinModalSub">Ingresa tu PIN para acceder al panel de profesor.</p>
+
+    <div id="pinSetupBlock" style="display:none">
+      <div style="background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.3);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--t2);line-height:1.6">
+        💡 <strong style="color:var(--cyan)">Primera vez:</strong> establece un PIN de 4 a 6 dígitos. Solo tú lo conocerás. Si tu navegador se borra, tendrás que crear uno nuevo.
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:16px">
+      <label id="pinLabel">PIN (4-6 dígitos)</label>
+      <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+             autocomplete="off"
+             style="font-family:var(--font-mono);font-size:24px;letter-spacing:8px;text-align:center;padding:16px"
+             placeholder="••••" onkeydown="if(event.key==='Enter')handlePinSubmit()">
+      <div id="pinError" class="err-msg" style="margin-top:8px"></div>
+    </div>
+
+    <div id="pinConfirmBlock" style="display:none">
+      <div class="field" style="margin-bottom:16px">
+        <label>Confirmar PIN</label>
+        <input type="password" id="pinConfirm" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               autocomplete="off"
+               style="font-family:var(--font-mono);font-size:24px;letter-spacing:8px;text-align:center;padding:16px"
+               placeholder="••••" onkeydown="if(event.key==='Enter')handlePinSubmit()">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn btn-outline" onclick="closeTeacherPin()" style="flex:1">Cancelar</button>
+      <button class="btn btn-primary" onclick="handlePinSubmit()" id="pinSubmitBtn" style="flex:1">Ingresar</button>
+    </div>
+
+    <div style="text-align:center;margin-top:16px">
+      <button onclick="resetTeacherPin()" style="background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;text-decoration:underline" id="resetPinBtn">¿Olvidaste tu PIN?</button>
+    </div>
+  </div>
 </div>
 
 <!-- Config Modal -->
@@ -1886,6 +1931,10 @@ async function init() {
   loadConfig();
   loadSavedClassroomLocation();
 
+  // Sistema de autenticación del profesor
+  applyTeacherUiState();        // muestra/oculta pestañas según si hay sesión activa
+  setupTeacherAccess();         // configura el tap-secret en el logo
+
   // Toggle GPS muestra/oculta bloque de captura
   const tglGeo = document.getElementById('tglGeo');
   const geoBlock = document.getElementById('geoCaptureBlock');
@@ -2053,6 +2102,241 @@ function drawProjectorQR(text) {
 function setProjStatus(msg) {
   const titleEl = document.getElementById('projTitle');
   if (titleEl) titleEl.textContent = msg;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 1. AUTENTICACIÓN DEL PROFESOR (PIN)
+// ═══════════════════════════════════════════════════════════════
+//
+// El profesor establece un PIN de 4-6 dígitos en su navegador.
+// Las pestañas Profesor / Monitor / Archivo solo aparecen cuando
+// el profesor está autenticado en SU dispositivo.
+// El alumno solo ve la pestaña "Alumno".
+
+const TEACHER_PIN_KEY = 'usam_teacher_pin_hash';
+const TEACHER_AUTH_KEY = 'usam_teacher_authed';
+const PIN_FAIL_KEY = 'usam_pin_fails';
+
+let pinModalMode = 'login';  // 'login' | 'setup' | 'confirm'
+let pinTempValue = '';        // Para flujo de setup (primer PIN ingresado)
+
+// Hash simple del PIN con SHA-256 (no es perfecto pero suficiente para este caso)
+async function hashPin(pin) {
+  const buf = new TextEncoder().encode('usam-' + pin + '-salt-2026');
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function isTeacherPinSet() {
+  return !!localStorage.getItem(TEACHER_PIN_KEY);
+}
+
+function isTeacherAuthed() {
+  return localStorage.getItem(TEACHER_AUTH_KEY) === '1';
+}
+
+function setTeacherAuthed(val) {
+  if (val) localStorage.setItem(TEACHER_AUTH_KEY, '1');
+  else localStorage.removeItem(TEACHER_AUTH_KEY);
+  applyTeacherUiState();
+}
+
+function applyTeacherUiState() {
+  const authed = isTeacherAuthed();
+  document.querySelectorAll('.teacher-tab').forEach(el => {
+    el.style.display = authed ? '' : 'none';
+  });
+  // Si el profesor cierra sesión y estaba viendo una pestaña de profesor, redirigir a alumno
+  if (!authed) {
+    const activeView = document.querySelector('.view.active');
+    if (activeView && activeView.id !== 'view-student' && activeView.id !== 'view-projector') {
+      switchView('student', document.getElementById('tabS'));
+    }
+  }
+}
+
+// Abrir modal: detecta si es primer uso (setup) o login
+function openTeacherPin() {
+  const modal = document.getElementById('teacherPinModal');
+  const setupBlock = document.getElementById('pinSetupBlock');
+  const confirmBlock = document.getElementById('pinConfirmBlock');
+  const title = document.getElementById('pinModalTitle');
+  const sub = document.getElementById('pinModalSub');
+  const label = document.getElementById('pinLabel');
+  const submitBtn = document.getElementById('pinSubmitBtn');
+  const resetBtn = document.getElementById('resetPinBtn');
+
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinConfirm').value = '';
+  document.getElementById('pinError').classList.remove('show');
+
+  if (!isTeacherPinSet()) {
+    pinModalMode = 'setup';
+    title.textContent = '🆕 Crear PIN del profesor';
+    sub.textContent = 'Esta es la primera vez. Establece un PIN para proteger el acceso al panel.';
+    setupBlock.style.display = 'block';
+    confirmBlock.style.display = 'none';
+    label.textContent = 'Crea tu PIN (4-6 dígitos)';
+    submitBtn.textContent = 'Continuar';
+    resetBtn.style.display = 'none';
+  } else {
+    pinModalMode = 'login';
+    title.textContent = '🔐 Acceso del profesor';
+    sub.textContent = 'Ingresa tu PIN para acceder al panel.';
+    setupBlock.style.display = 'none';
+    confirmBlock.style.display = 'none';
+    label.textContent = 'PIN';
+    submitBtn.textContent = 'Ingresar';
+    resetBtn.style.display = '';
+  }
+  modal.classList.add('show');
+  setTimeout(() => document.getElementById('pinInput').focus(), 100);
+}
+
+function closeTeacherPin() {
+  document.getElementById('teacherPinModal').classList.remove('show');
+  pinTempValue = '';
+}
+
+async function handlePinSubmit() {
+  const errEl = document.getElementById('pinError');
+  errEl.classList.remove('show');
+
+  if (pinModalMode === 'setup') {
+    // Primera vez: capturar PIN inicial y pedir confirmación
+    const pin = document.getElementById('pinInput').value;
+    if (!/^\d{4,6}$/.test(pin)) {
+      errEl.textContent = 'El PIN debe tener entre 4 y 6 dígitos';
+      errEl.classList.add('show');
+      return;
+    }
+    pinTempValue = pin;
+    pinModalMode = 'confirm';
+    document.getElementById('pinModalTitle').textContent = '🔁 Confirma tu PIN';
+    document.getElementById('pinModalSub').textContent = 'Vuelve a escribir el mismo PIN para confirmar.';
+    document.getElementById('pinSetupBlock').style.display = 'none';
+    document.getElementById('pinConfirmBlock').style.display = 'block';
+    document.getElementById('pinConfirm').value = '';
+    document.getElementById('pinSubmitBtn').textContent = 'Crear PIN';
+    setTimeout(() => document.getElementById('pinConfirm').focus(), 50);
+    return;
+  }
+
+  if (pinModalMode === 'confirm') {
+    const pin = document.getElementById('pinConfirm').value;
+    if (pin !== pinTempValue) {
+      errEl.textContent = 'Los PINs no coinciden. Inténtalo de nuevo.';
+      errEl.classList.add('show');
+      return;
+    }
+    // Guardar el hash y autenticar
+    const hash = await hashPin(pin);
+    localStorage.setItem(TEACHER_PIN_KEY, hash);
+    setTeacherAuthed(true);
+    pinTempValue = '';
+    closeTeacherPin();
+    toast('PIN creado y profesor autenticado ✓', 'success');
+    // Llevar al panel del profesor
+    switchView('prof', document.getElementById('tabP'));
+    return;
+  }
+
+  // Login: verificar PIN contra hash guardado
+  const pin = document.getElementById('pinInput').value;
+  if (!pin) {
+    errEl.textContent = 'Ingresa tu PIN';
+    errEl.classList.add('show');
+    return;
+  }
+
+  // Anti brute-force: bloquear después de 5 intentos fallidos en 5 min
+  const fails = JSON.parse(localStorage.getItem(PIN_FAIL_KEY) || '[]')
+    .filter(t => Date.now() - t < 5 * 60 * 1000);
+  if (fails.length >= 5) {
+    const waitMin = Math.ceil((5 * 60 * 1000 - (Date.now() - Math.min(...fails))) / 60000);
+    errEl.textContent = `Demasiados intentos fallidos. Espera ${waitMin} minutos.`;
+    errEl.classList.add('show');
+    return;
+  }
+
+  const inputHash = await hashPin(pin);
+  const savedHash = localStorage.getItem(TEACHER_PIN_KEY);
+
+  if (inputHash !== savedHash) {
+    fails.push(Date.now());
+    localStorage.setItem(PIN_FAIL_KEY, JSON.stringify(fails));
+    errEl.textContent = 'PIN incorrecto. Intentos restantes: ' + (5 - fails.length);
+    errEl.classList.add('show');
+    document.getElementById('pinInput').value = '';
+    return;
+  }
+
+  // PIN correcto
+  localStorage.removeItem(PIN_FAIL_KEY);
+  setTeacherAuthed(true);
+  closeTeacherPin();
+  toast('Profesor autenticado ✓', 'success');
+  switchView('prof', document.getElementById('tabP'));
+}
+
+function teacherLogout() {
+  if (!confirm('¿Cerrar sesión del profesor? Tendrás que ingresar tu PIN de nuevo.')) return;
+  setTeacherAuthed(false);
+  toast('Sesión de profesor cerrada', 'info');
+}
+
+function resetTeacherPin() {
+  const ok = confirm(
+    '⚠️ ¿Olvidaste tu PIN?\n\n' +
+    'Esto BORRARÁ tu PIN y tendrás que crear uno nuevo. ' +
+    'Tus datos de sesiones NO se borrarán, pero cualquiera podrá crear el siguiente PIN.\n\n' +
+    '¿Continuar?'
+  );
+  if (!ok) return;
+  localStorage.removeItem(TEACHER_PIN_KEY);
+  localStorage.removeItem(TEACHER_AUTH_KEY);
+  localStorage.removeItem(PIN_FAIL_KEY);
+  closeTeacherPin();
+  toast('PIN eliminado. Pulsa el logo 5 veces para crear uno nuevo.', 'info');
+}
+
+// ─── Acceso oculto: 5 toques rápidos al logo del nav abre el modal ───
+let logoTapCount = 0;
+let logoTapTimer = null;
+
+function setupTeacherAccess() {
+  const navMark = document.getElementById('navMark');
+  const navBrand = document.getElementById('navBrand');
+  if (!navMark || !navBrand) return;
+
+  const handleTap = () => {
+    if (isTeacherAuthed()) {
+      // Ya autenticado: ir directo al panel
+      switchView('prof', document.getElementById('tabP'));
+      return;
+    }
+    logoTapCount++;
+    clearTimeout(logoTapTimer);
+    logoTapTimer = setTimeout(() => { logoTapCount = 0; }, 1500);
+    if (logoTapCount >= 5) {
+      logoTapCount = 0;
+      openTeacherPin();
+    }
+  };
+
+  navMark.addEventListener('click', handleTap);
+  // También permitir Ctrl+Shift+P (teclado para PC)
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+      e.preventDefault();
+      if (isTeacherAuthed()) {
+        switchView('prof', document.getElementById('tabP'));
+      } else {
+        openTeacherPin();
+      }
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2598,10 +2882,18 @@ function decodeKey(s) {
 // ═══════════════════════════════════════════════════════════════
 
 function switchView(v, btn) {
+  // ─── Blindaje: bloquear acceso a vistas de profesor sin autenticación ───
+  const teacherViews = ['prof', 'monitor', 'archive'];
+  if (teacherViews.includes(v) && !isTeacherAuthed()) {
+    toast('🔐 Acceso restringido. Pulsa el logo 5 veces para iniciar sesión.', 'error');
+    openTeacherPin();
+    return;
+  }
+
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('view-' + v).classList.add('active');
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   if (v === 'student') initStudent();
   else stopCamera();
   if (v === 'monitor') refreshMonitor();
@@ -4260,7 +4552,10 @@ Object.assign(window, {
   exportArchivePDF, exportArchiveExcel, exportArchiveCSV,
   closePdfOptionsModal, generatePDF,
   // GPS
-  captureClassroomLocation
+  captureClassroomLocation,
+  // Auth profesor
+  openTeacherPin, closeTeacherPin, handlePinSubmit,
+  teacherLogout, resetTeacherPin
 });
 
 </script>
