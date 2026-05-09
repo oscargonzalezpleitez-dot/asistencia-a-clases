@@ -66,129 +66,6 @@ body::before{
   mask-image:radial-gradient(ellipse 60% 50% at 50% 30%, #000 30%, transparent 80%);
 }
 
-/* ─── AULA EN VIVO (vista dual) ─── */
-:root{
-  --aula-bg-1:#FFF7EE;
-  --aula-bg-2:#FFE9F0;
-  --aula-ink:#1A1430;
-  --aula-ink-2:#5A547A;
-  --aula-ink-3:#9A95B5;
-  --aula-line:rgba(26,20,48,.08);
-  --aula-primary:#FF5A8A;
-  --aula-secondary:#7C5CFF;
-  --aula-tertiary:#FFB44A;
-  --aula-mint:#22C7A1;
-  --aula-sky:#3DB1FF;
-}
-#view-aula{max-width:1280px}
-#view-aula.active{display:block}
-.aula-bg{
-  position:fixed;inset:0;z-index:-1;pointer-events:none;display:none;
-  background:
-    radial-gradient(ellipse 60% 40% at 10% 0%, #FFD6E6 0%, transparent 60%),
-    radial-gradient(ellipse 50% 50% at 100% 20%, #FFE2B8 0%, transparent 60%),
-    radial-gradient(ellipse 55% 45% at 50% 100%, #DDD3FF 0%, transparent 60%),
-    linear-gradient(180deg,var(--aula-bg-1) 0%, var(--aula-bg-2) 100%);
-}
-#view-aula.active ~ .aula-bg, body:has(#view-aula.active) .aula-bg{display:block}
-#view-aula.active{color:var(--aula-ink)}
-.aula-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:18px}
-.aula-brand{display:flex;align-items:center;gap:14px}
-.aula-mark{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--aula-primary),var(--aula-secondary));display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;box-shadow:0 10px 30px rgba(255,90,138,.35)}
-.aula-brand-title{font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--aula-ink)}
-.aula-brand-sub{font-size:12px;color:var(--aula-ink-2);margin-top:3px;font-weight:500}
-.aula-livepill{display:inline-flex;align-items:center;gap:8px;background:#fff;padding:10px 16px;border-radius:999px;box-shadow:0 8px 24px rgba(26,20,48,.06);font-size:13px;font-weight:600;color:var(--aula-ink)}
-.aula-livedot{width:8px;height:8px;border-radius:50%;background:var(--aula-mint);animation:aulaPulse 1.6s infinite}
-@keyframes aulaPulse{0%{box-shadow:0 0 0 0 rgba(34,199,161,.6)}70%{box-shadow:0 0 0 10px rgba(34,199,161,0)}100%{box-shadow:0 0 0 0 rgba(34,199,161,0)}}
-.aula-grid{display:grid;grid-template-columns:auto 1fr;gap:48px;align-items:start;justify-content:center}
-@media(max-width:980px){.aula-grid{grid-template-columns:1fr;gap:32px;justify-items:center}}
-.aula-col-label{font-family:var(--mono);font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--aula-ink-2);font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.aula-num{width:22px;height:22px;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:800;font-family:'Inter',sans-serif;letter-spacing:0}
-
-/* Phone mock */
-.aula-phone{position:relative;width:340px;height:700px;border-radius:46px;background:#000;padding:8px;box-shadow:0 40px 80px rgba(124,92,255,.25),0 0 0 1px rgba(0,0,0,.12)}
-.aula-notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:110px;height:32px;border-radius:20px;background:#000;z-index:5}
-.aula-phone-screen{position:relative;width:100%;height:100%;border-radius:38px;overflow:hidden;background:#000;color:#fff;display:flex;flex-direction:column}
-.aula-phone-bg{position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 30%, #2A2438 0%, #14111E 60%, #000 100%)}
-.aula-phone-statusbar{position:relative;z-index:3;display:flex;justify-content:space-between;padding:14px 24px 0;font-size:13px;font-weight:600}
-.aula-phone-topbar{position:relative;z-index:3;padding:24px 18px 8px;display:flex;align-items:center;justify-content:space-between}
-.aula-circ-btn{width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,.14);backdrop-filter:blur(20px);border:none;color:#fff;font-size:16px;cursor:pointer}
-.aula-tinylbl{font-size:9px;font-weight:700;letter-spacing:1.6px;opacity:.7}
-.aula-mid{font-size:13px;font-weight:700;margin-top:2px}
-.aula-phone-heading{position:relative;z-index:3;padding:6px 22px 12px}
-.aula-h1{font-size:18px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
-.aula-h1-sub{font-size:11px;opacity:.65;margin-top:4px;font-weight:500}
-.aula-scan-window{position:relative;z-index:3;margin:0 14px;aspect-ratio:1/1;border-radius:18px;overflow:hidden;background:#fff}
-.aula-scan-bg{position:absolute;inset:0;background:#fff;display:grid;place-items:center}
-.aula-projected{position:absolute;inset:0;background:#fff;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;gap:8px}
-.aula-proj-lbl{font-size:9px;font-weight:700;color:var(--aula-secondary);letter-spacing:1.4px}
-.aula-proj-qr{width:88%;aspect-ratio:1/1;background:#fff;border-radius:4px;display:grid;place-items:center;padding:0}
-.aula-proj-qr canvas, .aula-proj-qr img{width:100%!important;height:100%!important;display:block;image-rendering:pixelated}
-.aula-proj-code{font-size:11px;font-weight:800;color:#1A1430;font-family:var(--mono);letter-spacing:2px}
-.aula-scan-mask{display:none}
-.aula-scan-frame{display:none}
-.aula-bracket{position:absolute;width:24px;height:24px}
-.aula-tl{top:0;left:0;border-top:3px solid #fff;border-left:3px solid #fff;border-top-left-radius:12px}
-.aula-tr{top:0;right:0;border-top:3px solid #fff;border-right:3px solid #fff;border-top-right-radius:12px}
-.aula-bl{bottom:0;left:0;border-bottom:3px solid #fff;border-left:3px solid #fff;border-bottom-left-radius:12px}
-.aula-br{bottom:0;right:0;border-bottom:3px solid #fff;border-right:3px solid #fff;border-bottom-right-radius:12px}
-.aula-scanline{position:absolute;left:8%;right:8%;top:50%;height:2px;background:linear-gradient(90deg,transparent,var(--aula-primary),transparent);box-shadow:0 0 18px var(--aula-primary);animation:aulaScan 2.4s ease-in-out infinite}
-@keyframes aulaScan{0%{transform:translateY(-80px);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateY(80px);opacity:0}}
-.aula-detect-pill{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(34,199,161,.95);color:#fff;padding:6px 12px;border-radius:999px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:6px;box-shadow:0 8px 20px rgba(34,199,161,.5)}
-.aula-detect-dot{width:6px;height:6px;border-radius:3px;background:#fff;animation:aulaFlash 1.2s infinite}
-@keyframes aulaFlash{50%{opacity:.3}}
-.aula-phone-card{position:relative;z-index:3;margin:14px 18px 0;background:rgba(255,255,255,.08);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px}
-.aula-phone-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--aula-primary),var(--aula-secondary));display:grid;place-items:center;font-size:13px;font-weight:800}
-.aula-phone-name{font-size:13px;font-weight:700;letter-spacing:-.01em}
-.aula-phone-meta{font-size:10px;opacity:.7;margin-top:2px}
-.aula-phone-badge{font-size:9px;font-weight:800;color:var(--aula-mint);background:rgba(34,199,161,.18);padding:4px 8px;border-radius:8px;letter-spacing:.5px}
-.aula-phone-action{position:relative;z-index:3;padding:14px 18px 14px;margin-top:auto}
-.aula-cta{width:100%;padding:13px;border-radius:16px;background:linear-gradient(135deg,var(--aula-primary),var(--aula-secondary));color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 12px 30px rgba(255,90,138,.45);display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit}
-.aula-cta-foot{text-align:center;font-size:10px;opacity:.55;margin-top:8px}
-.aula-home-ind{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:120px;height:4px;border-radius:4px;background:rgba(255,255,255,.7);z-index:6}
-
-/* Live panel */
-.aula-list-col{width:100%;max-width:560px}
-.aula-panel{background:#fff;border-radius:28px;padding:22px;box-shadow:0 30px 80px rgba(124,92,255,.18),0 8px 24px rgba(26,20,48,.06);display:flex;flex-direction:column;gap:16px;color:var(--aula-ink)}
-.aula-panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.aula-panel-title{font-size:18px;font-weight:800;letter-spacing:-.01em}
-.aula-panel-sub{font-size:12px;color:var(--aula-ink-2);margin-top:2px;font-weight:500}
-.aula-rec{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--aula-primary),#FF7BA6);color:#fff;padding:6px 11px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.4px;box-shadow:0 6px 18px rgba(255,90,138,.35)}
-.aula-rec.off{background:#E8E5F2;color:var(--aula-ink-3);box-shadow:none}
-.aula-rec-dot{width:6px;height:6px;border-radius:3px;background:#fff;animation:aulaFlash 1.4s infinite}
-.aula-meta-strip{display:flex;gap:8px;flex-wrap:wrap;background:linear-gradient(135deg,#FFF6FA,#F5F0FF);border-radius:14px;padding:10px 12px}
-.aula-meta-item{font-size:11px;font-weight:600;color:var(--aula-ink-2)}
-.aula-meta-item b{color:var(--aula-ink);font-weight:800;display:block;margin-top:2px;font-size:13px;font-family:var(--mono);letter-spacing:.5px}
-.aula-meta-sep{width:1px;background:var(--aula-line)}
-.aula-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.aula-stat{border-radius:16px;padding:13px;color:#fff;position:relative;overflow:hidden}
-.aula-stat-num{font-size:26px;font-weight:900;letter-spacing:-.02em;line-height:1;font-family:'Inter',sans-serif}
-.aula-stat-lbl{font-size:11px;font-weight:600;opacity:.92;margin-top:5px}
-.aula-stat-icon{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:13px}
-.aula-s-total{background:linear-gradient(135deg,var(--aula-secondary),#A48BFF)}
-.aula-s-ontime{background:linear-gradient(135deg,var(--aula-mint),#3FE0BC)}
-.aula-s-late{background:linear-gradient(135deg,var(--aula-tertiary),#FFC976)}
-.aula-progress{height:8px;border-radius:999px;background:#F1EEF8;overflow:hidden;display:flex}
-.aula-p-ontime{display:block;height:100%;background:var(--aula-mint);transition:width .4s}
-.aula-p-late{display:block;height:100%;background:var(--aula-tertiary);transition:width .4s}
-.aula-list{display:flex;flex-direction:column;gap:7px;max-height:380px;overflow:auto;padding-right:4px}
-.aula-list::-webkit-scrollbar{width:4px}
-.aula-list::-webkit-scrollbar-thumb{background:var(--aula-line);border-radius:4px}
-.aula-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:#FAF8FF;border:1px solid transparent;transition:all .25s;animation:aulaSlideIn .5s ease}
-@keyframes aulaSlideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-.aula-row.fresh{background:linear-gradient(135deg,rgba(34,199,161,.12),rgba(61,177,255,.08));border-color:rgba(34,199,161,.3)}
-.aula-avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0}
-.aula-row-name{font-size:13px;font-weight:700;letter-spacing:-.01em;color:var(--aula-ink)}
-.aula-row-meta{font-size:11px;color:var(--aula-ink-2);font-weight:500;margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.aula-row-meta .aula-dot{width:3px;height:3px;border-radius:50%;background:var(--aula-ink-3)}
-.aula-chip{font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;letter-spacing:.3px}
-.aula-chip-ok{background:rgba(34,199,161,.14);color:#0E8E6F}
-.aula-chip-late{background:rgba(255,180,74,.18);color:#9D6212}
-.aula-chip-new{background:var(--aula-mint);color:#fff;animation:aulaFlash 1.5s infinite}
-.aula-row-time{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--aula-ink-2);text-align:right}
-.aula-row-time small{display:block;font-size:9px;color:var(--aula-ink-3);font-weight:500;margin-top:2px}
-.aula-empty{text-align:center;padding:30px 10px;font-family:var(--mono);font-size:11px;color:var(--aula-ink-3);letter-spacing:1px}
-
 /* ─── NAV ─── */
 .nav{
   position:sticky;top:0;z-index:50;
@@ -535,6 +412,86 @@ body::before{
 .pdf-option:has(input:checked){border-color:var(--accent);background:rgba(110,231,255,.05)}
 .pdf-option input:disabled ~ label{opacity:.4;cursor:not-allowed}
 
+/* ─── PROYECTOR (modo flotante) ─── */
+body.projector-mode{
+  background:#fff !important;
+  background-image:none !important;
+}
+body.projector-mode::before{display:none}
+body.projector-mode .nav{display:none !important}
+body.projector-mode #view-prof,
+body.projector-mode #view-monitor,
+body.projector-mode #view-student,
+body.projector-mode #view-archive{display:none !important}
+body.projector-mode #view-projector{display:flex !important;padding:0 !important;margin:0 !important;max-width:none !important}
+
+#view-projector{
+  width:100vw;height:100vh;align-items:center;justify-content:center;
+}
+.proj-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  padding:18px;width:100%;height:100%;justify-content:center;
+}
+.proj-header{text-align:center}
+.proj-title{
+  font-family:var(--mono);font-size:11px;letter-spacing:3px;
+  color:#666;text-transform:uppercase;font-weight:700;
+}
+.proj-meta{font-size:13px;color:#999;margin-top:4px;font-weight:500}
+.proj-qr-wrap{flex:1;display:flex;align-items:center;justify-content:center;width:100%}
+.proj-qr-frame{
+  position:relative;background:#fff;padding:14px;border-radius:14px;
+  border:2px solid #e0e0e0;
+  box-shadow:0 4px 24px rgba(0,0,0,.08);
+  transition:border-color .4s, box-shadow .4s;
+}
+.proj-qr-frame.warn-glow{
+  border-color:#f59e0b;
+  box-shadow:0 4px 28px rgba(245,158,11,.4);
+  animation:projPulseWarn .8s ease-in-out infinite alternate;
+}
+@keyframes projPulseWarn{
+  from{box-shadow:0 4px 28px rgba(245,158,11,.3)}
+  to  {box-shadow:0 4px 40px rgba(245,158,11,.6)}
+}
+#projQrCanvas{display:block;width:100%;max-width:400px;height:auto;aspect-ratio:1/1}
+.proj-paused{
+  position:absolute;inset:0;background:rgba(255,255,255,.95);border-radius:14px;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#999;
+}
+.proj-paused.show{display:flex}
+.proj-paused .ico{font-size:48px}
+.proj-paused span{font-family:var(--mono);font-size:11px;letter-spacing:2px}
+.proj-footer{
+  display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;
+}
+.proj-token{
+  font-family:var(--mono);font-size:22px;font-weight:800;letter-spacing:6px;
+  color:#0066cc;padding:8px 18px;
+  background:rgba(0,102,204,.06);border:2px solid rgba(0,102,204,.2);border-radius:10px;
+}
+.proj-stats{
+  display:flex;align-items:center;gap:8px;font-size:13px;color:#666;
+}
+.proj-counter{
+  font-family:var(--mono);font-size:18px;font-weight:800;color:#22a06b;
+  padding:2px 10px;background:rgba(34,160,107,.08);border-radius:6px;
+}
+.proj-counter-lbl{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px}
+.proj-timer{
+  font-family:var(--mono);font-size:13px;font-weight:700;color:#666;
+  margin-left:auto;padding:2px 10px;background:#f5f5f5;border-radius:6px;min-width:50px;text-align:center;
+}
+.proj-timer.warn{color:#f59e0b;background:rgba(245,158,11,.08)}
+
+/* Modo proyector compacto: cuando la ventana es pequeña (script Python) */
+@media (max-width: 460px) {
+  body.projector-mode .proj-title{font-size:10px}
+  body.projector-mode .proj-meta{font-size:11px}
+  body.projector-mode #projQrCanvas{max-width:280px}
+  body.projector-mode .proj-token{font-size:18px;letter-spacing:4px}
+}
+
 /* ─── LOADING OVERLAY ─── */
 .loading-overlay{
   position:fixed;inset:0;background:rgba(5,7,13,.85);backdrop-filter:blur(6px);
@@ -589,7 +546,6 @@ body::before{
   </div>
   <div class="nav-tabs">
     <button class="tab-btn active" id="tabP" onclick="switchView('prof', this)">Profesor</button>
-    <button class="tab-btn" id="tabAula" onclick="switchView('aula', this)">Aula en vivo</button>
     <button class="tab-btn" id="tabM" onclick="switchView('monitor', this)">Monitor</button>
     <button class="tab-btn" id="tabA" onclick="switchView('archive', this)">Archivo</button>
     <button class="tab-btn" id="tabS" onclick="switchView('student', this)">Alumno</button>
@@ -744,150 +700,6 @@ body::before{
 
 </section>
 
-<!-- ════════════ VISTA AULA EN VIVO (alumno + lista lado a lado) ════════════ -->
-<section id="view-aula" class="view">
-  <div class="aula-bg"></div>
-  <div class="aula-header">
-    <div class="aula-brand">
-      <div class="aula-mark">A+</div>
-      <div>
-        <div class="aula-brand-title">Aula en vivo</div>
-        <div class="aula-brand-sub" id="aulaSubject">— · — · USAM</div>
-      </div>
-    </div>
-    <div class="aula-livepill" id="aulaLivePill">
-      <span class="aula-livedot"></span>
-      <span id="aulaLiveTxt">Sin sesión activa</span>
-    </div>
-  </div>
-
-  <div class="aula-grid">
-    <!-- COLUMNA 1: TELÉFONO ALUMNO -->
-    <div class="aula-phone-col">
-      <div class="aula-col-label">
-        <span class="aula-num" style="background:var(--aula-primary)">1</span>
-        ALUMNO · iPhone
-      </div>
-      <div class="aula-phone">
-        <div class="aula-notch"></div>
-        <div class="aula-phone-screen">
-          <div class="aula-phone-bg"></div>
-          <div class="aula-phone-statusbar">
-            <span id="aulaClock">12:42</span>
-            <span style="display:flex;gap:5px;align-items:center;font-size:11px">
-              <span>●●●●</span><span>📶</span><span>🔋</span>
-            </span>
-          </div>
-          <div class="aula-phone-topbar">
-            <button class="aula-circ-btn">‹</button>
-            <div style="text-align:center">
-              <div class="aula-tinylbl">USAM · ASISTENCIA</div>
-              <div class="aula-mid">Escanear QR</div>
-            </div>
-            <button class="aula-circ-btn">⚡</button>
-          </div>
-          <div class="aula-phone-heading">
-            <div class="aula-h1">Escanea para<br>registrarte</div>
-            <div class="aula-h1-sub">Apunta tu cámara al QR · abre el link y completa tus datos</div>
-          </div>
-          <div class="aula-scan-window">
-            <div class="aula-scan-bg">
-              <div class="aula-projected">
-                <div class="aula-proj-lbl">SESIÓN ACTIVA · USAM</div>
-                <div class="aula-proj-qr" id="aulaProjQR"></div>
-                <div class="aula-proj-code" id="aulaProjCode">QR-A8K2</div>
-              </div>
-            </div>
-            <div class="aula-scan-mask"></div>
-            <div class="aula-scan-frame">
-              <span class="aula-bracket aula-tl"></span>
-              <span class="aula-bracket aula-tr"></span>
-              <span class="aula-bracket aula-bl"></span>
-              <span class="aula-bracket aula-br"></span>
-              <div class="aula-scanline"></div>
-            </div>
-            <div class="aula-detect-pill">
-              <span class="aula-detect-dot"></span>Detectando código…
-            </div>
-          </div>
-          <div class="aula-phone-card">
-            <div class="aula-phone-avatar" id="aulaPhoneAvatar">SM</div>
-            <div style="flex:1;min-width:0">
-              <div class="aula-phone-name" id="aulaPhoneName">Esperando alumno…</div>
-              <div class="aula-phone-meta" id="aulaPhoneMeta">— · ingresar carnet y correo</div>
-            </div>
-            <span class="aula-phone-badge" id="aulaPhoneBadge">LISTO</span>
-          </div>
-          <div class="aula-phone-action">
-            <button class="aula-cta" onclick="document.getElementById('tabS').click()">
-              <span style="font-size:16px">📸</span> Confirmar con selfie
-            </button>
-            <div class="aula-cta-foot">Tu registro queda firmado en este dispositivo</div>
-          </div>
-          <div class="aula-home-ind"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- COLUMNA 2: LISTA EN VIVO -->
-    <div class="aula-list-col">
-      <div class="aula-col-label">
-        <span class="aula-num" style="background:var(--aula-secondary)">2</span>
-        PROFESOR · Lista en tiempo real
-      </div>
-      <div class="aula-panel">
-        <div class="aula-panel-head">
-          <div>
-            <div class="aula-panel-title">Lista de asistencia</div>
-            <div class="aula-panel-sub">Sincronización en vivo con cada escaneo</div>
-          </div>
-          <span class="aula-rec" id="aulaRec"><span class="aula-rec-dot"></span>EN VIVO</span>
-        </div>
-
-        <div class="aula-meta-strip">
-          <div class="aula-meta-item">Código actual<b id="aulaToken">——————</b></div>
-          <div class="aula-meta-sep"></div>
-          <div class="aula-meta-item">Próxima rotación<b id="aulaNextRot">--:--</b></div>
-          <div class="aula-meta-sep"></div>
-          <div class="aula-meta-item">Inicio<b id="aulaStart">—</b></div>
-          <div class="aula-meta-sep"></div>
-          <div class="aula-meta-item">Materia<b id="aulaSubj">—</b></div>
-        </div>
-
-        <div class="aula-stats">
-          <div class="aula-stat aula-s-total">
-            <div class="aula-stat-icon">👥</div>
-            <div class="aula-stat-num" id="aulaStatTotal">0</div>
-            <div class="aula-stat-lbl">Presentes</div>
-          </div>
-          <div class="aula-stat aula-s-ontime">
-            <div class="aula-stat-icon">✓</div>
-            <div class="aula-stat-num" id="aulaStatOnTime">0</div>
-            <div class="aula-stat-lbl">A tiempo</div>
-          </div>
-          <div class="aula-stat aula-s-late">
-            <div class="aula-stat-icon">⏱</div>
-            <div class="aula-stat-num" id="aulaStatLate">0</div>
-            <div class="aula-stat-lbl">Tardíos</div>
-          </div>
-        </div>
-
-        <div class="aula-progress">
-          <span class="aula-p-ontime" id="aulaPOnTime" style="width:0%"></span>
-          <span class="aula-p-late" id="aulaPLate" style="width:0%"></span>
-        </div>
-
-        <div class="aula-list" id="aulaList">
-          <div class="aula-empty">
-            <div style="font-size:32px;margin-bottom:8px;opacity:.6">📡</div>
-            ESPERANDO PRIMER REGISTRO…
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- ════════════ VISTA MONITOR (solo lectura, para celular) ════════════ -->
 <section id="view-monitor" class="view">
   <div class="card">
@@ -1008,6 +820,35 @@ body::before{
       </div>
     </div>
 
+  </div>
+</section>
+
+<!-- ════════════ VISTA PROYECTOR (solo QR gigante, para ventana flotante) ════════════ -->
+<section id="view-projector" class="view">
+  <div class="proj-wrap">
+    <div class="proj-header">
+      <div class="proj-title" id="projTitle">ESPERANDO SESIÓN</div>
+      <div class="proj-meta" id="projMeta">—</div>
+    </div>
+
+    <div class="proj-qr-wrap">
+      <div class="proj-qr-frame" id="projQrFrame">
+        <canvas id="projQrCanvas" width="400" height="400"></canvas>
+        <div class="proj-paused" id="projPaused">
+          <div class="ico">⏸</div>
+          <span>SIN SESIÓN ACTIVA</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="proj-footer">
+      <div class="proj-token" id="projToken">——————</div>
+      <div class="proj-stats">
+        <span class="proj-counter" id="projCounter">0</span>
+        <span class="proj-counter-lbl">presentes</span>
+        <span class="proj-timer" id="projTimer">--</span>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1154,6 +995,15 @@ const CIRC = 2 * Math.PI * 38;
 window.addEventListener('DOMContentLoaded', init);
 
 function init() {
+  // Detectar modo proyector ANTES de todo lo demás
+  const params = new URLSearchParams(window.location.search);
+  const isProjectorMode = params.get('mode') === 'projector';
+
+  if (isProjectorMode) {
+    initProjectorMode();
+    return;
+  }
+
   // Fecha de hoy
   document.getElementById('dateInput').valueAsDate = new Date();
 
@@ -1177,7 +1027,6 @@ function init() {
   loadConfig();
 
   // Verificar URL params (vista alumno desde QR)
-  const params = new URLSearchParams(window.location.search);
   if (params.get('view') === 'student') {
     document.getElementById('tabS').click();
   }
@@ -1196,6 +1045,158 @@ function init() {
   } else {
     document.getElementById('setupNotice').style.display = 'block';
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODO PROYECTOR (ventana flotante embebida en script Python)
+// Solo muestra QR + token + contador de presentes. Solo lectura.
+// ═══════════════════════════════════════════════════════════════
+
+let PROJ_TIMER_INTERVAL = null;
+let PROJ_LAST_ROTATION = 0;
+let PROJ_DURATION_GUESS = 120; // segundos, se actualiza al recibir lastRotation
+
+function initProjectorMode() {
+  // Marcar el body para activar estilos especiales
+  document.body.classList.add('projector-mode');
+  document.getElementById('view-projector').classList.add('active');
+
+  // Cargar config (siempre tendrá la embebida por defecto)
+  loadConfig();
+
+  // Conectar a Firebase y suscribirse a la sesión activa
+  connectFirebaseProjector();
+
+  // Atajo: Esc cierra (útil cuando está embebido)
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') window.close();
+  });
+}
+
+async function connectFirebaseProjector() {
+  if (!STATE.firebaseConfig) {
+    setProjStatus('SIN CONFIGURACIÓN');
+    return;
+  }
+  try {
+    if (!window.firebaseLib) {
+      await new Promise(r => window.addEventListener('firebase-ready', r, {once:true}));
+    }
+    const { initializeApp, getDatabase, ref, onValue } = window.firebaseLib;
+    STATE.fbApp = initializeApp(STATE.firebaseConfig, 'usam-projector-' + Date.now());
+    STATE.fbDb = getDatabase(STATE.fbApp);
+    STATE.online = true;
+
+    // Suscribirse a active_session en tiempo real
+    const sessionRef = ref(STATE.fbDb, 'active_session');
+    onValue(sessionRef, snap => {
+      const data = snap.val();
+      renderProjector(data);
+    });
+  } catch(e) {
+    console.error('Projector connect error:', e);
+    setProjStatus('ERROR DE CONEXIÓN');
+  }
+}
+
+function renderProjector(sessionData) {
+  const titleEl = document.getElementById('projTitle');
+  const metaEl  = document.getElementById('projMeta');
+  const tokenEl = document.getElementById('projToken');
+  const counterEl = document.getElementById('projCounter');
+  const pausedEl  = document.getElementById('projPaused');
+  const frameEl   = document.getElementById('projQrFrame');
+
+  if (!sessionData || !sessionData.currentToken) {
+    // Sin sesión activa
+    titleEl.textContent = 'ESPERANDO SESIÓN';
+    metaEl.textContent = 'El profesor debe iniciar la sesión';
+    tokenEl.textContent = '——————';
+    counterEl.textContent = '0';
+    pausedEl.classList.add('show');
+    frameEl.classList.remove('warn-glow');
+    document.getElementById('projTimer').textContent = '--';
+    if (PROJ_TIMER_INTERVAL) { clearInterval(PROJ_TIMER_INTERVAL); PROJ_TIMER_INTERVAL = null; }
+    return;
+  }
+
+  // Hay sesión activa
+  pausedEl.classList.remove('show');
+  const meta = sessionData.meta || {};
+  titleEl.textContent = (meta.subject || 'SESIÓN ACTIVA').toUpperCase();
+  const subParts = [];
+  if (meta.topic) subParts.push(meta.topic);
+  if (meta.group) subParts.push(meta.group);
+  metaEl.textContent = subParts.join(' · ') || formatDate(meta.date) || '—';
+
+  tokenEl.textContent = sessionData.currentToken;
+  counterEl.textContent = sessionData.attendees ? Object.keys(sessionData.attendees).length : 0;
+
+  // Generar QR para el token actual
+  const baseUrl = window.location.href.split('?')[0].split('#')[0];
+  const qrUrl = `${baseUrl}?view=student&t=${sessionData.currentToken}`;
+  drawProjectorQR(qrUrl);
+
+  // Iniciar/actualizar timer de rotación basado en lastRotation
+  if (sessionData.lastRotation && sessionData.config) {
+    PROJ_LAST_ROTATION = sessionData.lastRotation;
+    // Estimar duración mirando si la sesión guardó duration en config
+    // (si no, asumimos 120s por defecto)
+    if (PROJ_TIMER_INTERVAL) clearInterval(PROJ_TIMER_INTERVAL);
+    PROJ_TIMER_INTERVAL = setInterval(updateProjectorTimer, 1000);
+    updateProjectorTimer();
+  }
+}
+
+function updateProjectorTimer() {
+  if (!PROJ_LAST_ROTATION) return;
+  // Calcular tiempo restante: (lastRotation + duration*1000) - now
+  // Como no sabemos duration con certeza, observamos: si > 5min asumimos 5, si > 3 asumimos 3, etc.
+  // Pero el dato real lo tenemos al recibir cada rotación.
+  const elapsed = (Date.now() - PROJ_LAST_ROTATION) / 1000;
+  // Adivinar duration: si pasaron <60s desde última rotación es 60, <120 es 120, etc.
+  // Mejor: simplemente mostrar tiempo desde última rotación
+  const secs = Math.max(0, Math.round(elapsed));
+  const tEl = document.getElementById('projTimer');
+  const frameEl = document.getElementById('projQrFrame');
+
+  // Mostrar como tiempo desde rotación
+  const mins = Math.floor(secs / 60);
+  const remSecs = secs % 60;
+  tEl.textContent = mins > 0 ? `${mins}:${String(remSecs).padStart(2,'0')}` : `${secs}s`;
+
+  // Glow de advertencia: si han pasado más de 50 segundos desde la última rotación
+  // (probablemente esté por rotar pronto si la duración es 60s)
+  // Esta es una aproximación visual.
+  tEl.classList.remove('warn');
+  frameEl.classList.remove('warn-glow');
+}
+
+function drawProjectorQR(text) {
+  const dest = document.getElementById('projQrCanvas');
+  if (!dest || !window.QRCode) return;
+  const ctx = dest.getContext('2d');
+  ctx.clearRect(0, 0, dest.width, dest.height);
+
+  const tmp = document.createElement('div');
+  tmp.style.cssText = 'position:absolute;visibility:hidden;left:-9999px';
+  document.body.appendChild(tmp);
+
+  new QRCode(tmp, {
+    text, width:400, height:400,
+    colorDark:'#000', colorLight:'#fff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+  setTimeout(() => {
+    const src = tmp.querySelector('canvas');
+    if (src) ctx.drawImage(src, 0, 0, 400, 400);
+    tmp.remove();
+  }, 80);
+}
+
+function setProjStatus(msg) {
+  const titleEl = document.getElementById('projTitle');
+  if (titleEl) titleEl.textContent = msg;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1438,13 +1439,8 @@ function listenActiveSession() {
     if (data) {
       // Hay sesión activa en Firebase
       const view = document.querySelector('.view.active')?.id;
-      if (view === 'view-monitor' || view === 'view-student' || view === 'view-aula') {
+      if (view === 'view-monitor' || view === 'view-student') {
         syncFromFirebase(data);
-      } else {
-        // Aun si no estamos en esas vistas, mantener STATE.log fresco para aula
-        if (data.attendees) {
-          STATE.log = Object.values(data.attendees).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
-        }
       }
     } else {
       // No hay sesión activa
@@ -1475,21 +1471,12 @@ function syncFromFirebase(sessionData) {
     }
   }
 
-  // Sincronizar log para vista monitor / aula
+  // Sincronizar log para vista monitor
   if (sessionData && sessionData.attendees) {
     const list = Object.values(sessionData.attendees).sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
-    STATE.log = list;
     if (view === 'view-monitor') {
       renderMonitor(list);
     }
-    if (view === 'view-aula') {
-      renderAula(list, sessionData);
-    }
-  } else if (sessionData) {
-    STATE.log = [];
-    if (view === 'view-aula') renderAula([], sessionData);
-  } else {
-    if (view === 'view-aula') renderAula([], null);
   }
 }
 
@@ -1510,163 +1497,7 @@ function switchView(v, btn) {
   else stopCamera();
   if (v === 'monitor') refreshMonitor();
   if (v === 'archive') loadArchive();
-  if (v === 'aula') refreshAula();
-  // Cambiar fondo body cuando entra/sale aula
-  document.body.classList.toggle('aula-mode', v === 'aula');
 }
-
-// ═══════════════════════════════════════════════════════════════
-// VISTA AULA EN VIVO — usa STATE.log y Firebase
-// ═══════════════════════════════════════════════════════════════
-
-const AULA_PALETTES = [
-  'linear-gradient(135deg,#FF5A8A,#FF8AB6)',
-  'linear-gradient(135deg,#7C5CFF,#A48BFF)',
-  'linear-gradient(135deg,#22C7A1,#3FE0BC)',
-  'linear-gradient(135deg,#FFB44A,#FFC976)',
-  'linear-gradient(135deg,#3DB1FF,#7BCBFF)',
-  'linear-gradient(135deg,#FF7B5C,#FFA07A)',
-  'linear-gradient(135deg,#9C5CFF,#C79BFF)'
-];
-function aulaInitials(n){return (n||'').split(' ').filter(Boolean).slice(0,2).map(p=>p[0]||'').join('').toUpperCase()||'?';}
-function aulaEsc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-
-async function refreshAula() {
-  if (STATE.online && STATE.fbDb) {
-    const { ref, get } = window.firebaseLib;
-    try {
-      const snap = await get(ref(STATE.fbDb, 'active_session'));
-      const data = snap.val();
-      if (!data) { renderAula([], null); return; }
-      const list = Object.values(data.attendees || {}).sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
-      renderAula(list, data);
-    } catch(e) { renderAula(STATE.log, null); }
-  } else {
-    renderAula(STATE.log, null);
-  }
-}
-
-function renderAula(list, sessionData) {
-  list = list || [];
-  const total = list.length;
-  const onTime = list.filter(e => !e.late).length;
-  const late = list.filter(e => e.late).length;
-
-  // Header / pill
-  const livePill = document.getElementById('aulaLivePill');
-  const liveTxt = document.getElementById('aulaLiveTxt');
-  const rec = document.getElementById('aulaRec');
-  const meta = sessionData?.meta || STATE.sessionMeta || {};
-  const subj = meta.subject || document.getElementById('subject')?.value || '—';
-  const grp  = meta.group   || document.getElementById('group')?.value   || '—';
-  document.getElementById('aulaSubject').textContent = `${subj} · ${grp} · USAM`;
-  document.getElementById('aulaSubj').textContent = subj;
-
-  if (sessionData || STATE.sessionActive) {
-    liveTxt.textContent = 'Sesión activa';
-    rec.classList.remove('off');
-  } else {
-    liveTxt.textContent = 'Sin sesión activa';
-    rec.classList.add('off');
-  }
-
-  // Token actual
-  const tok = sessionData?.currentToken || STATE.currentToken || '——————';
-  document.getElementById('aulaToken').textContent = tok;
-  document.getElementById('aulaProjCode').textContent = tok;
-
-  // QR mini en el iPhone — codifica el LINK de registro (no solo el código)
-  const qrBox = document.getElementById('aulaProjQR');
-  if (qrBox && tok && tok !== '——————' && qrBox.dataset.token !== tok) {
-    qrBox.dataset.token = tok;
-    qrBox.innerHTML = '';
-    try {
-      if (typeof QRCode !== 'undefined') {
-        const baseUrl = window.location.href.split('?')[0].split('#')[0];
-        const nonce = STATE.currentNonce || '';
-        const qrUrl = `${baseUrl}?view=student&t=${encodeURIComponent(tok)}&n=${encodeURIComponent(nonce)}`;
-        new QRCode(qrBox, { text: qrUrl, width: 200, height: 200,
-          colorDark:'#1A1430', colorLight:'#ffffff',
-          correctLevel: QRCode.CorrectLevel.M });
-      }
-    } catch(e) {}
-  } else if (qrBox && (!tok || tok === '——————')) {
-    qrBox.innerHTML = '<div style="font-size:8px;color:#9A95B5;font-family:monospace;letter-spacing:1px">SIN QR</div>';
-    qrBox.dataset.token = '';
-  }
-
-  // Próxima rotación / inicio
-  const remain = STATE.remaining || 0;
-  document.getElementById('aulaNextRot').textContent =
-    remain > 0 ? `${String(Math.floor(remain/60)).padStart(2,'0')}:${String(remain%60).padStart(2,'0')}` : '--:--';
-  const startTs = sessionData?.startTime || STATE.sessionStartTime;
-  document.getElementById('aulaStart').textContent = startTs
-    ? new Date(startTs).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})
-    : '—';
-  document.getElementById('aulaRotMin').textContent = Math.round((STATE.duration||120)/60);
-
-  // Stats
-  document.getElementById('aulaStatTotal').textContent = total;
-  document.getElementById('aulaStatOnTime').textContent = onTime;
-  document.getElementById('aulaStatLate').textContent = late;
-  const denom = Math.max(total, 1);
-  document.getElementById('aulaPOnTime').style.width = (onTime/denom*100) + '%';
-  document.getElementById('aulaPLate').style.width = (late/denom*100) + '%';
-
-  // Reloj
-  document.getElementById('aulaClock').textContent =
-    new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-
-  // Phone preview card: muestra el último alumno registrado
-  const lastEntry = list[0];
-  if (lastEntry) {
-    document.getElementById('aulaPhoneAvatar').textContent = aulaInitials(lastEntry.name);
-    document.getElementById('aulaPhoneName').textContent = lastEntry.name;
-    document.getElementById('aulaPhoneMeta').textContent = `${lastEntry.carnet || '—'} · ${lastEntry.email || ''}`;
-    const badge = document.getElementById('aulaPhoneBadge');
-    badge.textContent = lastEntry.late ? 'TARDÍO' : 'A TIEMPO';
-    badge.style.color = lastEntry.late ? '#FFB44A' : '#22C7A1';
-    badge.style.background = lastEntry.late ? 'rgba(255,180,74,.18)' : 'rgba(34,199,161,.18)';
-  }
-
-  // Lista
-  const ul = document.getElementById('aulaList');
-  if (!list.length) {
-    ul.innerHTML = '<div class="aula-empty"><div style="font-size:32px;margin-bottom:8px;opacity:.6">📡</div>ESPERANDO PRIMER REGISTRO…</div>';
-    return;
-  }
-  const now = Date.now();
-  ul.innerHTML = list.map((e, i) => {
-    const ts = e.timestamp || now;
-    const minsAgo = Math.max(0, Math.floor((now - ts)/60000));
-    const isFresh = (now - ts) < 8000;
-    const chip = isFresh
-      ? '<span class="aula-chip aula-chip-new">NUEVO</span>'
-      : (e.late ? '<span class="aula-chip aula-chip-late">Tardío</span>' : '<span class="aula-chip aula-chip-ok">A tiempo</span>');
-    const time = e.time || new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    return `
-      <div class="aula-row ${isFresh?'fresh':''}">
-        <div class="aula-avatar" style="background:${AULA_PALETTES[i % AULA_PALETTES.length]}">${aulaInitials(e.name)}</div>
-        <div>
-          <div class="aula-row-name">${aulaEsc(e.name)}</div>
-          <div class="aula-row-meta">
-            <span>${aulaEsc(e.carnet||'—')}</span><span class="aula-dot"></span>${chip}
-          </div>
-        </div>
-        <div class="aula-row-time">
-          ${aulaEsc(time)}
-          <small>${minsAgo===0?'AHORA':'HACE '+minsAgo+'m'}</small>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-// Auto-refresh cada segundo si la vista está activa
-setInterval(() => {
-  if (document.querySelector('.view.active')?.id === 'view-aula') {
-    refreshAula();
-  }
-}, 1000);
 
 // ═══════════════════════════════════════════════════════════════
 // 4. GENERACIÓN DE TOKENS Y QR (PROFESOR)
@@ -1848,9 +1679,6 @@ function listenAttendees() {
     STATE.log = arr;
     renderLog();
     updateStats();
-    if (document.querySelector('.view.active')?.id === 'view-aula') {
-      renderAula(arr, { currentToken: STATE.currentToken, meta: STATE.sessionMeta, startTime: STATE.sessionStartTime });
-    }
   });
 }
 
