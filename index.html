@@ -4201,11 +4201,9 @@ async function submitAttendance(skipPhoto = false) {
   if (STATE.online && STATE.fbDb) {
     const { ref, set, get, serverTimestamp } = window.firebaseLib;
     try {
-      // Clave determinística. Con checkType "inicio"/"fin" el prefijo cambia
-      // para que el mismo alumno pueda registrar inicio Y fin en sesiones distintas.
-      const _ct = STATE.sessionMeta?.checkType || 'unico';
-      const _keyPfx = _ct === 'inicio' ? 'inicio' : _ct === 'fin' ? 'fin' : 'alumno';
-      const stableKey = encodeKey(_keyPfx + '_' + carnet);
+      // Clave determinística: cada sesión (inicio o fin) ya resetea attendees:{},
+      // por lo que el mismo carné puede registrarse en sesiones distintas sin conflicto.
+      const stableKey = encodeKey('alumno_' + carnet);
       const writeRef = ref(STATE.fbDb, 'active_session/attendees/' + stableKey);
 
       // GUARDIA #3: Check final inmediatamente antes de escribir
