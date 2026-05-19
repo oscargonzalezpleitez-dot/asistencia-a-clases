@@ -741,6 +741,47 @@ body::after {
   color: var(--magenta);
   border: 1px solid rgba(255, 43, 214, 0.3);
 }
+.flag-chip.inicio {
+  background: rgba(0, 200, 100, 0.12);
+  color: #00c864;
+  border: 1px solid rgba(0, 200, 100, 0.3);
+}
+.flag-chip.fin {
+  background: rgba(255, 48, 87, 0.12);
+  color: var(--red, #ff3057);
+  border: 1px solid rgba(255, 48, 87, 0.3);
+}
+/* ── Selector de tipo de sesión (profesor) ── */
+.check-type-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.check-type-btn {
+  padding: 7px 14px; border-radius: 8px; font-size: 12px;
+  font-family: var(--font-mono); font-weight: 700; letter-spacing: .5px;
+  border: 1px solid var(--line); background: var(--bg-0);
+  color: var(--t2); cursor: pointer; transition: all .15s;
+}
+.check-type-btn:hover { border-color: var(--line-hi); color: var(--t1); }
+.check-type-btn.active[data-type="unico"]  { background: rgba(196,255,61,.12); color: var(--lime);   border-color: rgba(196,255,61,.4); }
+.check-type-btn.active[data-type="inicio"] { background: rgba(0,200,100,.12);  color: #00c864;        border-color: rgba(0,200,100,.4); }
+.check-type-btn.active[data-type="fin"]    { background: rgba(255,48,87,.12);  color: var(--red,#ff3057); border-color: rgba(255,48,87,.4); }
+/* ── Banner de tipo de registro (alumno) ── */
+.check-type-banner {
+  padding: 10px 16px; border-radius: 10px; font-family: var(--font-mono);
+  font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  text-align: center; margin-bottom: 14px;
+}
+.check-type-banner.inicio { background: rgba(0,200,100,.1); color: #00c864; border: 1px solid rgba(0,200,100,.3); }
+.check-type-banner.fin    { background: rgba(255,48,87,.1);  color: var(--red,#ff3057);  border: 1px solid rgba(255,48,87,.3); }
+/* ── Tabla combinada inicio+fin ── */
+.combined-summary {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.combined-stat {
+  flex: 1; min-width: 80px; text-align: center;
+  padding: 10px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg-0);
+}
+.combined-stat .cs-val { font-size: 22px; font-weight: 800; line-height: 1; }
+.combined-stat .cs-lbl { font-size: 10px; color: var(--t3); margin-top: 4px; font-family: var(--font-mono); letter-spacing: .5px; }
 .token-chip {
   font-family: var(--font-mono);
   font-size: 10px; letter-spacing: 1px;
@@ -1412,6 +1453,18 @@ body.projector-mode #view-projector {
       <div class="field"><label>Tema (opcional)</label><input id="topic" placeholder="Unidad I — Clase 03"></div>
     </div>
 
+    <div style="margin-bottom:16px">
+      <span class="card-title" style="display:block;margin-bottom:8px">Tipo de registro</span>
+      <div class="check-type-group" id="checkTypeGroup">
+        <button class="check-type-btn active" data-type="unico">✅ Único</button>
+        <button class="check-type-btn" data-type="inicio">🟢 Inicio de clase</button>
+        <button class="check-type-btn" data-type="fin">🔴 Fin de clase</button>
+      </div>
+      <p style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.5">
+        "Inicio" y "Fin" permiten que los alumnos se registren dos veces en la misma clase. El expediente muestra quién tiene ambos registros.
+      </p>
+    </div>
+
     <span class="card-title" style="margin-top:6px;display:block;margin-bottom:10px">Duración del QR</span>
     <div class="dur-group">
       <button class="dur-btn" data-val="60">1 MIN</button>
@@ -1616,6 +1669,15 @@ body.projector-mode #view-projector {
       <button class="export-btn" onclick="exportArchiveCSV()">📑 CSV</button>
     </div>
     <div class="log-scroll" id="archiveDetailBody" style="margin-top:14px"></div>
+
+    <!-- Reporte combinado inicio + fin (aparece solo cuando aplica) -->
+    <div id="combinedReportWrap" style="display:none;margin-top:20px;border-top:1px solid var(--line);padding-top:16px">
+      <div class="card-head" style="margin-bottom:12px">
+        <span class="card-title" style="font-size:13px">📊 Expediente combinado — Inicio + Fin</span>
+        <span id="combinedStatus" class="status-lbl" style="font-size:10px">CARGANDO</span>
+      </div>
+      <div id="combinedReportBody"></div>
+    </div>
   </div>
 </section>
 
@@ -1627,6 +1689,9 @@ body.projector-mode #view-projector {
     <div class="step active" id="step1">
       <h1 class="big-heading">Registra tu asistencia</h1>
       <p class="sub-heading">Ingresa tus datos y el código del QR proyectado por el profesor.</p>
+
+      <!-- Banner de tipo de registro (visible solo cuando aplica) -->
+      <div id="checkTypeBannerWrap" style="display:none"></div>
 
       <div class="card" style="padding:20px">
         <div class="s-field">
@@ -1924,6 +1989,14 @@ async function init() {
       document.querySelectorAll('.dur-btn').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
       STATE.duration = parseInt(b.dataset.val);
+    });
+  });
+
+  // Botones de tipo de sesión (inicio / fin / único)
+  document.querySelectorAll('.check-type-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.check-type-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
     });
   });
 
@@ -3023,10 +3096,11 @@ async function startSession() {
   }
 
   STATE.sessionMeta = {
-    subject: document.getElementById('subject').value.trim() || 'Sesión sin nombre',
-    group:   document.getElementById('group').value.trim() || '',
-    date:    document.getElementById('dateInput').value || new Date().toISOString().slice(0,10),
-    topic:   document.getElementById('topic').value.trim() || ''
+    subject:   document.getElementById('subject').value.trim() || 'Sesión sin nombre',
+    group:     document.getElementById('group').value.trim() || '',
+    date:      document.getElementById('dateInput').value || new Date().toISOString().slice(0,10),
+    topic:     document.getElementById('topic').value.trim() || '',
+    checkType: document.querySelector('.check-type-btn.active')?.dataset.type || 'unico',
   };
 
   STATE.sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
@@ -3039,7 +3113,8 @@ async function startSession() {
   document.getElementById('btnRotate').disabled = false;
   document.getElementById('btnStop').disabled = false;
   document.getElementById('qrPaused').classList.remove('show');
-  document.getElementById('sessionPill').innerHTML = `<span class="dot"></span>${STATE.sessionMeta.subject.toUpperCase()} · ACTIVO`;
+  const _ctLabel = STATE.sessionMeta.checkType === 'inicio' ? ' 🟢 INICIO ·' : STATE.sessionMeta.checkType === 'fin' ? ' 🔴 FIN ·' : '';
+  document.getElementById('sessionPill').innerHTML = `<span class="dot"></span>${STATE.sessionMeta.subject.toUpperCase()}${_ctLabel} · ACTIVO`;
   document.getElementById('sessionPill').classList.remove('off');
   setStatus('SESIÓN ACTIVA');
 
@@ -3183,6 +3258,8 @@ function renderLog() {
   filtered.forEach((e, i) => {
     const realIdx = STATE.log.indexOf(e);
     const flags = [];
+    if (e.checkType === 'inicio') flags.push('<span class="flag-chip inicio">🟢 INICIO</span>');
+    else if (e.checkType === 'fin') flags.push('<span class="flag-chip fin">🔴 FIN</span>');
     if (e.late) flags.push('<span class="flag-chip late">TARDÍO</span>');
     if (e.deviceFlag) flags.push('<span class="flag-chip warn">REPETIDO</span>');
     if (!e.photo) flags.push('<span class="flag-chip warn">SIN FOTO</span>');
@@ -3637,10 +3714,11 @@ function exportExcel() {
 function exportCSV() {
   if (!STATE.log.length) { toast('No hay registros', 'info'); return; }
   const sorted = [...STATE.log].sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
-  const rows = [['#','Nombre','Carnet','Correo','Token','Hora','Estado']];
+  const rows = [['#','Nombre','Carnet','Correo','Token','Hora','Estado','Tipo']];
   sorted.forEach((e, i) => rows.push([
     i+1, e.name, e.carnet, e.email, e.token, e.time,
-    e.late ? 'TARDIO' : 'A_TIEMPO'
+    e.late ? 'TARDIO' : 'A_TIEMPO',
+    (e.checkType || 'unico').toUpperCase(),
   ]));
   const csv = '\uFEFF' + rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
   const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
@@ -3774,6 +3852,7 @@ async function validateStep1() {
     }
     STATE.sessionMeta = valid.meta;
     STATE.config = { ...STATE.config, ...valid.config };
+    updateCheckTypeBanner(valid.meta?.checkType);
 
     // ─── Verificación GPS si está activada en la sesión ───
     if (valid.config && valid.config.requireGeo && valid.config.classroomLat && valid.config.classroomLng) {
@@ -4103,6 +4182,7 @@ async function submitAttendance(skipPhoto = false) {
     time, timestamp: now,
     deviceId: STATE.deviceId,
     late: isLate,
+    checkType: STATE.sessionMeta.checkType || 'unico',
     deviceFlag: false,
     // Datos GPS si la sesión los requiere
     distance: STATE.studentDistance != null ? STATE.studentDistance : null,
@@ -4121,9 +4201,11 @@ async function submitAttendance(skipPhoto = false) {
   if (STATE.online && STATE.fbDb) {
     const { ref, set, get, serverTimestamp } = window.firebaseLib;
     try {
-      // GUARDIA #2: Clave determinística basada en carnet (no permite duplicados físicos)
-      // Si el mismo carnet intenta escribir dos veces, sobrescribe en lugar de duplicar
-      const stableKey = encodeKey('alumno_' + carnet);
+      // Clave determinística. Con checkType "inicio"/"fin" el prefijo cambia
+      // para que el mismo alumno pueda registrar inicio Y fin en sesiones distintas.
+      const _ct = STATE.sessionMeta.checkType || 'unico';
+      const _keyPfx = _ct === 'inicio' ? 'inicio' : _ct === 'fin' ? 'fin' : 'alumno';
+      const stableKey = encodeKey(_keyPfx + '_' + carnet);
       const writeRef = ref(STATE.fbDb, 'active_session/attendees/' + stableKey);
 
       // GUARDIA #3: Check final inmediatamente antes de escribir
@@ -4371,6 +4453,143 @@ function renderMonitor(list) {
 
 let CURRENT_ARCHIVE_SESSION = null; // sesión actualmente abierta
 
+// ── Tipo de sesión: banner del alumno ───────────────────────────────────────
+function updateCheckTypeBanner(checkType) {
+  const wrap = document.getElementById('checkTypeBannerWrap');
+  if (!wrap) return;
+  if (checkType === 'inicio') {
+    wrap.style.display = 'block';
+    wrap.innerHTML = '<div class="check-type-banner inicio">🟢 REGISTRO DE INICIO DE CLASE</div>';
+  } else if (checkType === 'fin') {
+    wrap.style.display = 'block';
+    wrap.innerHTML = '<div class="check-type-banner fin">🔴 REGISTRO DE FIN DE CLASE</div>';
+  } else {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+  }
+}
+
+// ── Reporte combinado Inicio + Fin ──────────────────────────────────────────
+async function loadCombinedReport(session) {
+  const body   = document.getElementById('combinedReportBody');
+  const status = document.getElementById('combinedStatus');
+  if (!body) return;
+
+  if (!STATE.online || !STATE.fbDb) {
+    body.innerHTML = '<div class="log-empty" style="padding:10px"><div class="ico" style="font-size:1.5rem">📡</div>Sin conexión</div>';
+    return;
+  }
+
+  body.innerHTML = '<div class="log-empty" style="padding:10px"><div class="ico" style="font-size:1.5rem">⏳</div>Buscando sesión complementaria…</div>';
+
+  const myType   = session.meta?.checkType;                         // 'inicio' | 'fin'
+  const pairType = myType === 'inicio' ? 'fin' : 'inicio';
+
+  const { ref, get } = window.firebaseLib;
+  try {
+    const snap = await get(ref(STATE.fbDb, 'archive'));
+    const all  = snap.val() || {};
+
+    // Buscar la sesión complementaria: misma materia + misma fecha + tipo opuesto
+    const paired = Object.values(all).find(s =>
+      s.meta?.checkType === pairType &&
+      s.meta?.subject   === session.meta?.subject &&
+      s.meta?.date      === session.meta?.date
+    );
+
+    if (!paired) {
+      if (status) status.textContent = 'SIN COMPLEMENTO';
+      body.innerHTML = `
+        <div class="log-empty" style="padding:14px">
+          <div class="ico" style="font-size:1.5rem">📭</div>
+          Aún no hay sesión de ${pairType === 'inicio' ? 'INICIO' : 'FIN'} para esta clase.
+          <div style="font-size:11px;color:var(--t3);margin-top:6px">
+            Cuando el profesor genere el QR de ${pairType === 'inicio' ? 'inicio' : 'fin'}
+            y los alumnos se registren, aparecerá aquí el reporte completo.
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Construir mapas por carnet
+    const thisAtts = session.attendees ? Object.values(session.attendees) : [];
+    const pairAtts = paired.attendees  ? Object.values(paired.attendees)  : [];
+
+    const inicioMap = {};
+    const finMap    = {};
+    if (myType === 'inicio') {
+      thisAtts.forEach(e => inicioMap[e.carnet] = e);
+      pairAtts.forEach(e => finMap[e.carnet]    = e);
+    } else {
+      pairAtts.forEach(e => inicioMap[e.carnet] = e);
+      thisAtts.forEach(e => finMap[e.carnet]    = e);
+    }
+
+    const allCarnets = new Set([...Object.keys(inicioMap), ...Object.keys(finMap)]);
+    const rows = [...allCarnets].map(carnet => ({
+      carnet,
+      name:   (inicioMap[carnet] || finMap[carnet]).name,
+      inicio: inicioMap[carnet] || null,
+      fin:    finMap[carnet]    || null,
+    }));
+
+    // Orden: ambos → solo inicio → solo fin; dentro de cada grupo por nombre
+    rows.sort((a, b) => {
+      const sa = a.inicio && a.fin ? 0 : a.inicio ? 1 : 2;
+      const sb = b.inicio && b.fin ? 0 : b.inicio ? 1 : 2;
+      return sa !== sb ? sa - sb : a.name.localeCompare(b.name);
+    });
+
+    const nAmbos      = rows.filter(r => r.inicio && r.fin).length;
+    const nSoloInicio = rows.filter(r => r.inicio && !r.fin).length;
+    const nSoloFin    = rows.filter(r => !r.inicio && r.fin).length;
+    const nTotal      = rows.length;
+
+    if (status) status.textContent = `${nAmbos}/${nTotal} completos`;
+
+    body.innerHTML = `
+      <div class="combined-summary">
+        <div class="combined-stat">
+          <div class="cs-val" style="color:var(--lime)">${nAmbos}</div>
+          <div class="cs-lbl">AMBOS REGISTROS</div>
+        </div>
+        <div class="combined-stat">
+          <div class="cs-val" style="color:#00c864">${nSoloInicio}</div>
+          <div class="cs-lbl">SOLO INICIO</div>
+        </div>
+        <div class="combined-stat">
+          <div class="cs-val" style="color:var(--red, #ff3057)">${nSoloFin}</div>
+          <div class="cs-lbl">SOLO FIN</div>
+        </div>
+        <div class="combined-stat">
+          <div class="cs-val">${nTotal}</div>
+          <div class="cs-lbl">TOTAL ALUMNOS</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:6px">
+        ${rows.map((r, idx) => {
+          const both  = r.inicio && r.fin;
+          const icon  = both ? '✅' : (r.inicio ? '🟡' : '❌');
+          const cls   = both ? 'ok' : (r.inicio ? 'warn' : 'fin');
+          const label = both ? 'COMPLETO' : (r.inicio ? 'SOLO INICIO' : 'SOLO FIN');
+          const inicioTime = r.inicio ? `🟢 ${r.inicio.time}` : '🟢 —';
+          const finTime    = r.fin    ? `🔴 ${r.fin.time}`    : '🔴 —';
+          return `
+            <div class="log-entry">
+              <span class="log-idx">#${idx + 1}</span>
+              <div style="flex:1;min-width:0">
+                <div class="log-name">${escapeHtml(r.name)}</div>
+                <div class="log-sub">${escapeHtml(r.carnet)} &nbsp;·&nbsp; ${inicioTime} &nbsp;·&nbsp; ${finTime}</div>
+              </div>
+              <span class="flag-chip ${cls}">${icon} ${label}</span>
+            </div>`;
+        }).join('')}
+      </div>`;
+  } catch (e) {
+    body.innerHTML = `<div class="log-empty" style="padding:10px"><div class="ico" style="font-size:1.5rem">⚠️</div>${escapeHtml(e.message)}</div>`;
+  }
+}
+
 async function loadArchive() {
   const list = document.getElementById('archiveList');
   if (!STATE.online || !STATE.fbDb) {
@@ -4397,6 +4616,11 @@ async function loadArchive() {
       const meta = s.meta || {};
       const attCount = s.attendees ? Object.keys(s.attendees).length : 0;
       const dateStr = s.startTime ? new Date(s.startTime).toLocaleString('es-SV', {dateStyle:'medium', timeStyle:'short'}) : '—';
+      const ctBadge = meta.checkType === 'inicio'
+        ? '<span class="archive-pill" style="background:rgba(0,200,100,.1);color:#00c864;border-color:rgba(0,200,100,.3)">🟢 INICIO</span>'
+        : meta.checkType === 'fin'
+          ? '<span class="archive-pill" style="background:rgba(255,48,87,.1);color:var(--red);border-color:rgba(255,48,87,.3)">🔴 FIN</span>'
+          : '';
       const card = document.createElement('div');
       card.className = 'archive-card';
       card.innerHTML = `
@@ -4408,8 +4632,9 @@ async function loadArchive() {
             ${dateStr}
           </div>
         </div>
-        <div class="archive-stats">
+        <div class="archive-stats" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <span class="archive-pill">${attCount} alumno${attCount!==1?'s':''}</span>
+          ${ctBadge}
         </div>
         <div class="archive-actions">
           <button class="export-btn" data-action="open">Ver</button>
@@ -4432,7 +4657,20 @@ function openArchiveSession(session) {
   card.style.display = 'block';
   card.scrollIntoView({behavior:'smooth', block:'start'});
 
-  document.getElementById('archiveDetailTitle').textContent = (session.meta?.subject || 'Sesión') + ' — Detalle';
+  const _ctType = session.meta?.checkType;
+  const _ctSuffix = _ctType === 'inicio' ? ' 🟢 (Inicio)' : _ctType === 'fin' ? ' 🔴 (Fin)' : '';
+  document.getElementById('archiveDetailTitle').textContent = (session.meta?.subject || 'Sesión') + _ctSuffix + ' — Detalle';
+
+  // Mostrar/ocultar y cargar reporte combinado
+  const _combinedWrap = document.getElementById('combinedReportWrap');
+  if (_combinedWrap) {
+    if (_ctType === 'inicio' || _ctType === 'fin') {
+      _combinedWrap.style.display = 'block';
+      loadCombinedReport(session);
+    } else {
+      _combinedWrap.style.display = 'none';
+    }
+  }
 
   const attendees = session.attendees ? Object.values(session.attendees) : [];
   const total = attendees.length;
@@ -4479,6 +4717,8 @@ function openArchiveSession(session) {
 
 function closeArchiveDetail() {
   document.getElementById('archiveDetailCard').style.display = 'none';
+  const cw = document.getElementById('combinedReportWrap');
+  if (cw) cw.style.display = 'none';
   CURRENT_ARCHIVE_SESSION = null;
 }
 
@@ -4547,9 +4787,10 @@ Object.assign(window, {
   startSession, rotateQR, stopSession, validateStep1, goStep, handleShutter, retake,
   exportPDF, exportExcel, exportCSV, clearAttendance, dedupAttendance, openLb, closeLb,
   renderLog, refreshMonitor,
-  // Archivo y PDF nuevo
+  // Archivo, reporte combinado y PDF
   loadArchive, openArchiveSession, closeArchiveDetail, deleteArchiveSession,
   exportArchivePDF, exportArchiveExcel, exportArchiveCSV,
+  loadCombinedReport, updateCheckTypeBanner,
   closePdfOptionsModal, generatePDF,
   // GPS
   captureClassroomLocation,
