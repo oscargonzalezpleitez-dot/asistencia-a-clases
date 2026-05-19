@@ -3850,7 +3850,7 @@ async function validateStep1() {
         return;
       }
     }
-    STATE.sessionMeta = valid.meta;
+    STATE.sessionMeta = valid.meta || {};
     STATE.config = { ...STATE.config, ...valid.config };
     updateCheckTypeBanner(valid.meta?.checkType);
 
@@ -4182,7 +4182,7 @@ async function submitAttendance(skipPhoto = false) {
     time, timestamp: now,
     deviceId: STATE.deviceId,
     late: isLate,
-    checkType: STATE.sessionMeta.checkType || 'unico',
+    checkType: STATE.sessionMeta?.checkType || 'unico',
     deviceFlag: false,
     // Datos GPS si la sesión los requiere
     distance: STATE.studentDistance != null ? STATE.studentDistance : null,
@@ -4203,7 +4203,7 @@ async function submitAttendance(skipPhoto = false) {
     try {
       // Clave determinística. Con checkType "inicio"/"fin" el prefijo cambia
       // para que el mismo alumno pueda registrar inicio Y fin en sesiones distintas.
-      const _ct = STATE.sessionMeta.checkType || 'unico';
+      const _ct = STATE.sessionMeta?.checkType || 'unico';
       const _keyPfx = _ct === 'inicio' ? 'inicio' : _ct === 'fin' ? 'fin' : 'alumno';
       const stableKey = encodeKey(_keyPfx + '_' + carnet);
       const writeRef = ref(STATE.fbDb, 'active_session/attendees/' + stableKey);
