@@ -3258,8 +3258,9 @@ function renderLog() {
   filtered.forEach((e, i) => {
     const realIdx = STATE.log.indexOf(e);
     const flags = [];
-    if (e.checkType === 'inicio') flags.push('<span class="flag-chip inicio">🟢 INICIO</span>');
-    else if (e.checkType === 'fin') flags.push('<span class="flag-chip fin">🔴 FIN</span>');
+    const _sessionCt = STATE.sessionMeta?.checkType;
+    if (_sessionCt === 'inicio') flags.push('<span class="flag-chip inicio">🟢 INICIO</span>');
+    else if (_sessionCt === 'fin') flags.push('<span class="flag-chip fin">🔴 FIN</span>');
     if (e.late) flags.push('<span class="flag-chip late">TARDÍO</span>');
     if (e.deviceFlag) flags.push('<span class="flag-chip warn">REPETIDO</span>');
     if (!e.photo) flags.push('<span class="flag-chip warn">SIN FOTO</span>');
@@ -3718,7 +3719,7 @@ function exportCSV() {
   sorted.forEach((e, i) => rows.push([
     i+1, e.name, e.carnet, e.email, e.token, e.time,
     e.late ? 'TARDIO' : 'A_TIEMPO',
-    (e.checkType || 'unico').toUpperCase(),
+    (STATE.sessionMeta?.checkType || 'unico').toUpperCase(),
   ]));
   const csv = '\uFEFF' + rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
   const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
@@ -4182,7 +4183,6 @@ async function submitAttendance(skipPhoto = false) {
     time, timestamp: now,
     deviceId: STATE.deviceId,
     late: isLate,
-    checkType: STATE.sessionMeta?.checkType || 'unico',
     deviceFlag: false,
     // Datos GPS si la sesión los requiere
     distance: STATE.studentDistance != null ? STATE.studentDistance : null,
